@@ -17,6 +17,10 @@ RUN dotnet publish "PraOndeFoi.csproj" -c Release -o /app/publish /p:UseAppHost=
 # Usar a imagem do .NET 10
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
+
+# Instalar dependências do sistema para PostgreSQL
+RUN apt-get update && apt-get install -y libgssapi-krb5-2 && rm -rf /var/lib/apt/lists/*
+
 COPY --from=publish /app/publish .
 
 # Expor na porta 8080
