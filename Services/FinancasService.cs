@@ -1,4 +1,6 @@
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.ML;
+using Microsoft.ML.Data;
 using PraOndeFoi.DTOs;
 using PraOndeFoi.Models;
 using PraOndeFoi.Repository;
@@ -517,6 +519,88 @@ namespace PraOndeFoi.Services
             _contaCacheService.IncrementarVersao(meta.ContaId);
         }
 
+        public async Task<InsightsResponse> ObterInsightsAsync(InsightsQueryRequest request)
+        {
+            await GarantirContaAsync(request.ContaId);
+
+            var mesesHistorico = Math.Clamp(request.MesesHistorico, 3, 24);
+            var versao = _contaCacheService.ObterVersao(request.ContaId);
+            var cacheKey = $"insights:{request.ContaId}:{mesesHistorico}:v{versao}";
+
+            return await _cache.GetOrCreateAsync(cacheKey, async entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = CacheDuracao;
+                entry.SlidingExpiration = TimeSpan.FromMinutes(2);
+                entry.Size = 1;
+
+                var agora = DateTime.UtcNow;
+                var mesReferencia = new DateTime(agora.Year, agora.Month, 1);
+                var inicio = mesReferencia.AddMonths(-(mesesHistorico - 1));
+                var fim = mesReferencia.AddMonths(1).AddTicks(-1);
+
+                var transacoes = await _repository.ObterTransacoesPeriodoAsync(request.ContaId, inicio, fim);
+                var saidas = transacoes.Where(t => t.Tipo == TipoMovimento.Saida).ToList();
+
+                var totaisPorMes = saidas
+                    .GroupBy(t => new { t.DataTransacao.Year, t.DataTransacao.Month })
+                    .ToDictionary(g => (g.Key.Year, g.Key.Month), g => new
+                    {
+                        Total = g.Sum(t => t.Valor),
+                        Quantidade = g.Count()
+                    });
+
+                var meses = new List<ResumoGastoMensal>();
+                for (var i = 0; i < mesesHistorico; i++)
+                {
+                    var mesAtual = inicio.AddMonths(i);
+                    totaisPorMes.TryGetValue((mesAtual.Year, mesAtual.Month), out var info);
+                    meses.Add(new ResumoGastoMensal
+                    {
+                        InicioMes = mesAtual,
+                        TotalSaidas = info?.Total ?? 0m,
+                        QuantidadeSaidas = info?.Quantidade ?? 0
+                    });
+                }
+
+                var totalAtual = meses.LastOrDefault()?.TotalSaidas ?? 0m;
+                var totalAnterior = meses.Count > 1 ? meses[^2].TotalSaidas : 0m;
+                var variacao = totalAnterior > 0 ? (totalAtual - totalAnterior) / totalAnterior : 0m;
+
+                var saidasMesAtual = saidas.Where(t => t.DataTransacao.Year == mesReferencia.Year && t.DataTransacao.Month == mesReferencia.Month).ToList();
+                var topCategorias = saidasMesAtual
+                    .GroupBy(t => new { t.CategoriaId, Nome = t.Categoria?.Nome ?? "Sem categoria" })
+                    .Select(g => new InsightCategoriaResponse
+                    {
+                        CategoriaId = g.Key.CategoriaId,
+                        CategoriaNome = g.Key.Nome,
+                        Total = g.Sum(t => t.Valor),
+                        Percentual = totalAtual > 0 ? g.Sum(t => t.Valor) / totalAtual : 0m
+                    })
+                    .OrderByDescending(c => c.Total)
+                    .Take(3)
+                    .ToList();
+
+                var (previsao, confianca, modelo) = PreverProximoMes(meses);
+
+                var sugestoes = GerarSugestoes(totalAtual, totalAnterior, variacao, previsao, topCategorias);
+
+                return new InsightsResponse
+                {
+                    ContaId = request.ContaId,
+                    MesReferencia = mesReferencia.Month,
+                    AnoReferencia = mesReferencia.Year,
+                    TotalSaidasMesAtual = totalAtual,
+                    TotalSaidasMesAnterior = totalAnterior,
+                    VariacaoPercentual = variacao,
+                    PrevisaoSaidasProximoMes = previsao,
+                    Modelo = modelo,
+                    Confianca = confianca,
+                    TopCategorias = topCategorias,
+                    Sugestoes = sugestoes
+                };
+            }) ?? new InsightsResponse { ContaId = request.ContaId };
+        }
+
         public async Task<decimal> ObterSaldoAtualAsync(int contaId)
         {
             await GarantirContaAsync(contaId);
@@ -538,6 +622,150 @@ namespace PraOndeFoi.Services
 
                 return saldoInicial + entradas - saidas;
             });
+        }
+
+        private static (decimal previsao, decimal confianca, string modelo) PreverProximoMes(IReadOnlyList<ResumoGastoMensal> meses)
+        {
+            if (meses.Count < 4)
+            {
+                return (0m, 0m, "indisponivel");
+            }
+
+            var ultima = meses[^1];
+            var ultimasTres = meses.Skip(Math.Max(0, meses.Count - 3)).ToList();
+            var mediaTres = ultimasTres.Average(m => m.TotalSaidas);
+
+            var dados = new List<GastoMensalData>();
+            for (var i = 3; i < meses.Count; i++)
+            {
+                var anterior = meses[i - 1];
+                var anterior2 = meses[i - 2];
+                var anterior3 = meses[i - 3];
+                var media = (anterior.TotalSaidas + anterior2.TotalSaidas + anterior3.TotalSaidas) / 3m;
+
+                dados.Add(new GastoMensalData
+                {
+                    MesIndex = i,
+                    Mes = meses[i].InicioMes.Month,
+                    TotalMesAnterior = (float)anterior.TotalSaidas,
+                    MediaTresMeses = (float)media,
+                    TotalTransacoesAnterior = anterior.QuantidadeSaidas,
+                    Label = (float)meses[i].TotalSaidas
+                });
+            }
+
+            if (dados.Count < 4)
+            {
+                return (mediaTres, 0.2m, "baseline");
+            }
+
+            var mlContext = new MLContext(seed: 42);
+            var dataView = mlContext.Data.LoadFromEnumerable(dados);
+            var split = mlContext.Data.TrainTestSplit(dataView, testFraction: 0.2);
+
+            var pipeline = mlContext.Transforms.Concatenate(
+                    "Features",
+                    nameof(GastoMensalData.MesIndex),
+                    nameof(GastoMensalData.Mes),
+                    nameof(GastoMensalData.TotalMesAnterior),
+                    nameof(GastoMensalData.MediaTresMeses),
+                    nameof(GastoMensalData.TotalTransacoesAnterior))
+                .Append(mlContext.Regression.Trainers.Sdca(
+                    labelColumnName: nameof(GastoMensalData.Label),
+                    featureColumnName: "Features"));
+
+            var model = pipeline.Fit(split.TrainSet);
+            var predictions = model.Transform(split.TestSet);
+            var metrics = mlContext.Regression.Evaluate(predictions, labelColumnName: nameof(GastoMensalData.Label));
+
+            var engine = mlContext.Model.CreatePredictionEngine<GastoMensalData, GastoMensalPrediction>(model);
+            var proximoMes = ultima.InicioMes.AddMonths(1);
+            var entrada = new GastoMensalData
+            {
+                MesIndex = meses.Count,
+                Mes = proximoMes.Month,
+                TotalMesAnterior = (float)ultima.TotalSaidas,
+                MediaTresMeses = (float)mediaTres,
+                TotalTransacoesAnterior = ultima.QuantidadeSaidas
+            };
+
+            var score = engine.Predict(entrada).Score;
+            var previsao = Math.Max(0m, (decimal)score);
+            var confianca = (decimal)Math.Clamp(metrics.RSquared, 0, 1);
+
+            return (previsao, confianca, "mlnet-sdca");
+        }
+
+        private static IReadOnlyList<string> GerarSugestoes(decimal totalAtual, decimal totalAnterior, decimal variacao, decimal previsao, IReadOnlyList<InsightCategoriaResponse> topCategorias)
+        {
+            var sugestoes = new List<string>();
+
+            if (totalAtual == 0m)
+            {
+                sugestoes.Add("Sem gastos registrados neste mês. Registre suas transações para gerar recomendações.");
+                return sugestoes;
+            }
+
+            if (variacao >= 0.2m)
+            {
+                sugestoes.Add($"Seus gastos subiram {variacao:P0} em relação ao mês anterior.");
+            }
+            else if (variacao <= -0.2m)
+            {
+                sugestoes.Add($"Parabéns! Seus gastos reduziram {Math.Abs(variacao):P0} em relação ao mês anterior.");
+            }
+
+            var principal = topCategorias.FirstOrDefault();
+            if (principal != null && principal.Percentual >= 0.4m)
+            {
+                sugestoes.Add($"A categoria {principal.CategoriaNome} concentra {principal.Percentual:P0} dos seus gastos. Avalie oportunidades de redução.");
+            }
+
+            if (previsao > totalAtual * 1.1m)
+            {
+                sugestoes.Add("A previsão indica aumento de gastos no próximo mês. Considere revisar seu orçamento.");
+            }
+
+            if (sugestoes.Count == 0)
+            {
+                sugestoes.Add("Seus gastos estão estáveis. Continue acompanhando suas categorias principais.");
+            }
+
+            return sugestoes;
+        }
+
+        private sealed class ResumoGastoMensal
+        {
+            public DateTime InicioMes { get; set; }
+            public decimal TotalSaidas { get; set; }
+            public int QuantidadeSaidas { get; set; }
+        }
+
+        private sealed class GastoMensalData
+        {
+            [LoadColumn(0)]
+            public float MesIndex { get; set; }
+
+            [LoadColumn(1)]
+            public float Mes { get; set; }
+
+            [LoadColumn(2)]
+            public float TotalMesAnterior { get; set; }
+
+            [LoadColumn(3)]
+            public float MediaTresMeses { get; set; }
+
+            [LoadColumn(4)]
+            public float TotalTransacoesAnterior { get; set; }
+
+            [LoadColumn(5)]
+            public float Label { get; set; }
+        }
+
+        private sealed class GastoMensalPrediction
+        {
+            [ColumnName("Score")]
+            public float Score { get; set; }
         }
 
         private async Task GarantirContaAsync(int contaId)

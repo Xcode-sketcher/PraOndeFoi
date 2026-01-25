@@ -275,6 +275,15 @@ namespace PraOndeFoi.Repository
                 .ToListAsync();
         }
 
+        public Task<List<Transacao>> ObterTransacoesPeriodoAsync(int contaId, DateTime inicio, DateTime fim)
+        {
+            return _db.Transacoes
+                .AsNoTracking()
+                .Include(t => t.Categoria)
+                .Where(t => t.ContaId == contaId && t.DataTransacao >= inicio && t.DataTransacao <= fim)
+                .ToListAsync();
+        }
+
         public Task<List<Transacao>> ObterTransacoesParaExportacaoAsync(int contaId, DateTime? inicio, DateTime? fim)
         {
             var query = _db.Transacoes

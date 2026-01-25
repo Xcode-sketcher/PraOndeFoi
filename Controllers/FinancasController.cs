@@ -176,6 +176,20 @@ namespace PraOndeFoi.Controllers
             }
         }
 
+        [HttpGet("insights")]
+        public async Task<IActionResult> ObterInsights([FromQuery] InsightsQueryRequest request)
+        {
+            try
+            {
+                var insights = await _financasService.ObterInsightsAsync(request);
+                return Ok(insights);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
         [HttpGet("categorias")]
         public async Task<IActionResult> ObterCategorias()
         {

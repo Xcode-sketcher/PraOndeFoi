@@ -103,4 +103,12 @@ namespace PraOndeFoi.DTOs
         [Range(1, 10)]
         public int PageSize { get; set; } = 10;
     }
+
+    public class InsightsQueryRequest
+    {
+        [Range(1, int.MaxValue)]
+        public int ContaId { get; set; }
+        [Range(3, 24)]
+        public int MesesHistorico { get; set; } = 12;
+    }
 }

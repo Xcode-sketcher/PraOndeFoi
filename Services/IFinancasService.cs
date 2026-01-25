@@ -27,5 +27,6 @@ namespace PraOndeFoi.Services
         Task RemoverMetaAsync(int metaId);
         Task<MetaFinanceira> ContribuirMetaAsync(int metaId, ContribuirMetaRequest request);
         Task<decimal> ObterSaldoAtualAsync(int contaId);
+        Task<InsightsResponse> ObterInsightsAsync(InsightsQueryRequest request);
     }
 }

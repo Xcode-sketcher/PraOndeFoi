@@ -39,6 +39,7 @@ namespace PraOndeFoi.Repository
         Task<MetaFinanceira?> ObterMetaPorIdAsync(int metaId);
         Task<bool> TransacaoTagExisteAsync(int transacaoId, int tagId);
         Task<List<Transacao>> ObterTodasTransacoesAsync(int contaId);
+        Task<List<Transacao>> ObterTransacoesPeriodoAsync(int contaId, DateTime inicio, DateTime fim);
         Task<List<Transacao>> ObterTransacoesParaExportacaoAsync(int contaId, DateTime? inicio, DateTime? fim);
     }
 }

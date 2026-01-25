@@ -81,4 +81,27 @@ namespace PraOndeFoi.DTOs
         public IReadOnlyList<T> Data { get; set; } = new List<T>();
         public PaginationMetadata Pagination { get; set; } = new PaginationMetadata();
     }
+
+    public class InsightCategoriaResponse
+    {
+        public int CategoriaId { get; set; }
+        public string CategoriaNome { get; set; } = string.Empty;
+        public decimal Total { get; set; }
+        public decimal Percentual { get; set; }
+    }
+
+    public class InsightsResponse
+    {
+        public int ContaId { get; set; }
+        public int MesReferencia { get; set; }
+        public int AnoReferencia { get; set; }
+        public decimal TotalSaidasMesAtual { get; set; }
+        public decimal TotalSaidasMesAnterior { get; set; }
+        public decimal VariacaoPercentual { get; set; }
+        public decimal PrevisaoSaidasProximoMes { get; set; }
+        public string Modelo { get; set; } = string.Empty;
+        public decimal Confianca { get; set; }
+        public IReadOnlyList<InsightCategoriaResponse> TopCategorias { get; set; } = new List<InsightCategoriaResponse>();
+        public IReadOnlyList<string> Sugestoes { get; set; } = new List<string>();
+    }
 }
