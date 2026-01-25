@@ -13,14 +13,16 @@ namespace PraOndeFoi.Services
         private readonly IContaRepository _contaRepository;
         private readonly IMemoryCache _cache;
         private readonly IContaCacheService _contaCacheService;
+        private readonly ILogger<FinancasService> _logger;
         private static readonly TimeSpan CacheDuracao = TimeSpan.FromMinutes(5);
 
-        public FinancasService(IFinancasRepository repository, IContaRepository contaRepository, IMemoryCache cache, IContaCacheService contaCacheService)
+        public FinancasService(IFinancasRepository repository, IContaRepository contaRepository, IMemoryCache cache, IContaCacheService contaCacheService, ILogger<FinancasService> logger)
         {
             _repository = repository;
             _contaRepository = contaRepository;
             _cache = cache;
             _contaCacheService = contaCacheService;
+            _logger = logger;
         }
 
         public async Task<Transacao> CriarTransacaoAsync(NovaTransacaoRequest request)
@@ -538,8 +540,13 @@ namespace PraOndeFoi.Services
                 var inicio = mesReferencia.AddMonths(-(mesesHistorico - 1));
                 var fim = mesReferencia.AddMonths(1).AddTicks(-1);
 
+                _logger.LogInformation("Gerando insights para conta {ContaId} com {Meses} meses de histórico (inicio={Inicio}, fim={Fim})", request.ContaId, mesesHistorico, inicio, fim);
+
                 var transacoes = await _repository.ObterTransacoesPeriodoAsync(request.ContaId, inicio, fim);
+                _logger.LogInformation("Transações obtidas: {Count}", transacoes.Count);
+
                 var saidas = transacoes.Where(t => t.Tipo == TipoMovimento.Saida).ToList();
+                _logger.LogInformation("Saídas filtradas: {Count}", saidas.Count);
 
                 var totaisPorMes = saidas
                     .GroupBy(t => new { t.DataTransacao.Year, t.DataTransacao.Month })
@@ -580,9 +587,18 @@ namespace PraOndeFoi.Services
                     .Take(3)
                     .ToList();
 
-                var (previsao, confianca, modelo) = PreverProximoMes(meses);
+                (decimal previsao, decimal confianca, string modelo) previsaoResultado;
+                try
+                {
+                    previsaoResultado = PreverProximoMes(meses);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Erro ao executar PreverProximoMes: {Message}", ex.Message);
+                    previsaoResultado = (meses.LastOrDefault()?.TotalSaidas ?? 0m, 0m, "fallback");
+                }
 
-                var sugestoes = GerarSugestoes(totalAtual, totalAnterior, variacao, previsao, topCategorias);
+                var sugestoes = GerarSugestoes(totalAtual, totalAnterior, variacao, previsaoResultado.previsao, topCategorias);
 
                 return new InsightsResponse
                 {
@@ -592,9 +608,9 @@ namespace PraOndeFoi.Services
                     TotalSaidasMesAtual = totalAtual,
                     TotalSaidasMesAnterior = totalAnterior,
                     VariacaoPercentual = variacao,
-                    PrevisaoSaidasProximoMes = previsao,
-                    Modelo = modelo,
-                    Confianca = confianca,
+                    PrevisaoSaidasProximoMes = previsaoResultado.previsao,
+                    Modelo = previsaoResultado.modelo,
+                    Confianca = previsaoResultado.confianca,
                     TopCategorias = topCategorias,
                     Sugestoes = sugestoes
                 };
@@ -657,6 +673,11 @@ namespace PraOndeFoi.Services
             if (dados.Count < 4)
             {
                 return (mediaTres, 0.2m, "baseline");
+            }
+
+            if (dados.Any(d => float.IsNaN(d.Label) || float.IsInfinity(d.Label)))
+            {
+                throw new InvalidOperationException("Dados inválidos para treinamento do modelo (NaN/Infinity detectado).");
             }
 
             var mlContext = new MLContext(seed: 42);
