@@ -1,0 +1,171 @@
+@PraOndeFoi_HostAddress = http://localhost:5122
+@token = {{token}}
+@contaId = 1
+@categoriaId = 1
+@transacaoId = 1
+@tagId = 1
+
+### Auth - Cadastrar
+POST {{PraOndeFoi_HostAddress}}/api/auth/cadastrar
+Content-Type: application/json
+
+{
+	"email": "usuario@exemplo.com",
+	"password": "SenhaForte123!"
+}
+
+### Auth - Entrar
+POST {{PraOndeFoi_HostAddress}}/api/auth/entrar
+Content-Type: application/json
+
+{
+	"email": "usuario@exemplo.com",
+	"password": "SenhaForte123!"
+}
+
+### Auth - Sair
+POST {{PraOndeFoi_HostAddress}}/api/auth/sair
+
+### Contas - Criar conta única
+POST {{PraOndeFoi_HostAddress}}/api/contas
+Content-Type: application/json
+
+{
+	"usuarioId": "user-123",
+	"nome": "Eduardo",
+	"email": "usuario@exemplo.com",
+	"tipo": "Corrente",
+	"moeda": "BRL",
+	"saldoInicial": 1000
+}
+
+### Contas - Obter por Id
+GET {{PraOndeFoi_HostAddress}}/api/contas/{{contaId}}
+
+### Finanças - Categorias (pré-definidas)
+GET {{PraOndeFoi_HostAddress}}/api/financas/categorias
+
+### Finanças - Criar transação (TipoMovimento: 1=Entrada, 2=Saida)
+POST {{PraOndeFoi_HostAddress}}/api/financas/transacoes
+Content-Type: application/json
+
+{
+	"contaId": {{contaId}},
+	"tipo": 2,
+	"valor": 50.75,
+	"moeda": "BRL",
+	"dataTransacao": "2026-01-24T10:00:00Z",
+	"categoriaId": {{categoriaId}},
+	"descricao": "Almoço"
+}
+
+### Finanças - Criar recorrência (IntervaloUnidade: 1=Dia, 2=Mes)
+POST {{PraOndeFoi_HostAddress}}/api/financas/recorrencias
+Content-Type: application/json
+
+{
+	"contaId": {{contaId}},
+	"tipo": 2,
+	"valor": 10,
+	"moeda": "BRL",
+	"categoriaId": {{categoriaId}},
+	"descricao": "Café diário",
+	"frequencia": "Mensal",
+	"intervaloQuantidade": 1,
+	"intervaloUnidade": 1,
+	"dataInicio": "2026-01-01T00:00:00Z",
+	"diaDoMes": null,
+	"proximaExecucao": null,
+	"ativa": true
+}
+
+### Finanças - Criar assinatura
+POST {{PraOndeFoi_HostAddress}}/api/financas/assinaturas
+Content-Type: application/json
+
+{
+	"contaId": {{contaId}},
+	"nome": "Streaming",
+	"valor": 29.90,
+	"moeda": "BRL",
+	"categoriaId": {{categoriaId}},
+	"frequencia": "Mensal",
+	"intervaloQuantidade": 1,
+	"intervaloUnidade": 2,
+	"dataInicio": "2026-01-01T00:00:00Z",
+	"proximaCobranca": "2026-02-01T00:00:00Z",
+	"ativa": true
+}
+
+### Finanças - Criar orçamento mensal
+POST {{PraOndeFoi_HostAddress}}/api/financas/orcamentos
+Content-Type: application/json
+
+{
+	"contaId": {{contaId}},
+	"mes": 1,
+	"ano": 2026,
+	"categoriaId": {{categoriaId}},
+	"limite": 500
+}
+
+### Finanças - Resumo mensal
+GET {{PraOndeFoi_HostAddress}}/api/financas/resumo-mensal?contaId={{contaId}}&mes=1&ano=2026
+
+### Finanças - Status do orçamento
+GET {{PraOndeFoi_HostAddress}}/api/financas/orcamentos/status?contaId={{contaId}}&mes=1&ano=2026
+
+### Finanças - Filtrar transações
+GET {{PraOndeFoi_HostAddress}}/api/financas/transacoes?contaId={{contaId}}&tipo=2&categoriaId={{categoriaId}}&inicio=2026-01-01&fim=2026-01-31
+
+### Finanças - Criar tag
+POST {{PraOndeFoi_HostAddress}}/api/financas/tags
+Content-Type: application/json
+
+{
+	"contaId": {{contaId}},
+	"nome": "Essencial"
+}
+
+### Finanças - Listar tags
+GET {{PraOndeFoi_HostAddress}}/api/financas/tags?contaId={{contaId}}
+
+### Finanças - Vincular tag à transação
+POST {{PraOndeFoi_HostAddress}}/api/financas/transacoes/tags
+Content-Type: application/json
+
+{
+	"transacaoId": {{transacaoId}},
+	"tagId": {{tagId}}
+}
+
+### Finanças - Anexar nota/foto à transação (TipoAnexo: 1=Nota, 2=Foto)
+POST {{PraOndeFoi_HostAddress}}/api/financas/transacoes/anexos
+Content-Type: application/json
+
+{
+	"transacaoId": {{transacaoId}},
+	"tipo": 1,
+	"conteudoTexto": "Nota do mercado",
+	"url": ""
+}
+
+### Finanças - Criar meta financeira
+POST {{PraOndeFoi_HostAddress}}/api/financas/metas
+Content-Type: application/json
+
+{
+	"contaId": {{contaId}},
+	"nome": "Reserva de emergência",
+	"valorAlvo": 5000,
+	"valorAtual": 1200,
+	"dataInicio": "2026-01-01T00:00:00Z",
+	"dataFim": "2026-12-31T00:00:00Z",
+	"categoriaId": {{categoriaId}}
+}
+
+### Finanças - Listar metas
+GET {{PraOndeFoi_HostAddress}}/api/financas/metas?contaId={{contaId}}
+
+### Finanças - Saldo atual
+GET {{PraOndeFoi_HostAddress}}/api/financas/saldo-atual?contaId={{contaId}}

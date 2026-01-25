@@ -1,0 +1,295 @@
+{
+  "info": {
+    "name": "PraOndeFoi API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5122" },
+    { "key": "contaId", "value": "1" },
+    { "key": "categoriaId", "value": "1" },
+    { "key": "transacaoId", "value": "1" },
+    { "key": "tagId", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "Auth - Cadastrar",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"usuario@exemplo.com\",\n  \"password\": \"SenhaForte123!\"\n}"
+        },
+        "url": "{{baseUrl}}/api/auth/cadastrar"
+      }
+    },
+    {
+      "name": "Auth - Entrar",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"usuario@exemplo.com\",\n  \"password\": \"SenhaForte123!\"\n}"
+        },
+        "url": "{{baseUrl}}/api/auth/entrar"
+      }
+    },
+    {
+      "name": "Auth - Sair",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/auth/sair"
+      }
+    },
+    {
+      "name": "Contas - Criar",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"usuarioId\": \"user-123\",\n  \"nome\": \"Eduardo\",\n  \"email\": \"usuario@exemplo.com\",\n  \"tipo\": \"Corrente\",\n  \"moeda\": \"BRL\",\n  \"saldoInicial\": 1000\n}"
+        },
+        "url": "{{baseUrl}}/api/contas"
+      }
+    },
+    {
+      "name": "Contas - Obter por Id",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/contas/{{contaId}}"
+      }
+    },
+    {
+      "name": "Finanças - Categorias",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/financas/categorias"
+      }
+    },
+    {
+      "name": "Finanças - Criar Transação",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"contaId\": {{contaId}},\n  \"tipo\": 2,\n  \"valor\": 50.75,\n  \"moeda\": \"BRL\",\n  \"dataTransacao\": \"2026-01-24T10:00:00Z\",\n  \"categoriaId\": {{categoriaId}},\n  \"descricao\": \"Almoço\"\n}"
+        },
+        "url": "{{baseUrl}}/api/financas/transacoes"
+      }
+    },
+    {
+      "name": "Finanças - Criar Recorrência",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"contaId\": {{contaId}},\n  \"tipo\": 2,\n  \"valor\": 10,\n  \"moeda\": \"BRL\",\n  \"categoriaId\": {{categoriaId}},\n  \"descricao\": \"Café diário\",\n  \"frequencia\": \"Mensal\",\n  \"intervaloQuantidade\": 1,\n  \"intervaloUnidade\": 1,\n  \"dataInicio\": \"2026-01-01T00:00:00Z\",\n  \"diaDoMes\": null,\n  \"proximaExecucao\": null,\n  \"ativa\": true\n}"
+        },
+        "url": "{{baseUrl}}/api/financas/recorrencias"
+      }
+    },
+    {
+      "name": "Finanças - Criar Assinatura",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"contaId\": {{contaId}},\n  \"nome\": \"Streaming\",\n  \"valor\": 29.90,\n  \"moeda\": \"BRL\",\n  \"categoriaId\": {{categoriaId}},\n  \"frequencia\": \"Mensal\",\n  \"intervaloQuantidade\": 1,\n  \"intervaloUnidade\": 2,\n  \"dataInicio\": \"2026-01-01T00:00:00Z\",\n  \"proximaCobranca\": \"2026-02-01T00:00:00Z\",\n  \"ativa\": true\n}"
+        },
+        "url": "{{baseUrl}}/api/financas/assinaturas"
+      }
+    },
+    {
+      "name": "Finanças - Criar Orçamento",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"contaId\": {{contaId}},\n  \"mes\": 1,\n  \"ano\": 2026,\n  \"categoriaId\": {{categoriaId}},\n  \"limite\": 500\n}"
+        },
+        "url": "{{baseUrl}}/api/financas/orcamentos"
+      }
+    },
+    {
+      "name": "Finanças - Resumo Mensal",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/financas/resumo-mensal?contaId={{contaId}}&mes=1&ano=2026"
+      }
+    },
+    {
+      "name": "Finanças - Status Orçamento",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/financas/orcamentos/status?contaId={{contaId}}&mes=1&ano=2026"
+      }
+    },
+    {
+      "name": "Finanças - Filtrar Transações",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/financas/transacoes?contaId={{contaId}}&tipo=2&categoriaId={{categoriaId}}&inicio=2026-01-01&fim=2026-01-31"
+      }
+    },
+    {
+      "name": "Finanças - Criar Tag",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"contaId\": {{contaId}},\n  \"nome\": \"Essencial\"\n}"
+        },
+        "url": "{{baseUrl}}/api/financas/tags"
+      }
+    },
+    {
+      "name": "Finanças - Listar Tags",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/financas/tags?contaId={{contaId}}"
+      }
+    },
+    {
+      "name": "Finanças - Vincular Tag",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"transacaoId\": {{transacaoId}},\n  \"tagId\": {{tagId}}\n}"
+        },
+        "url": "{{baseUrl}}/api/financas/transacoes/tags"
+      }
+    },
+    {
+      "name": "Finanças - Anexar Nota/Foto",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"transacaoId\": {{transacaoId}},\n  \"tipo\": 1,\n  \"conteudoTexto\": \"Nota do mercado\",\n  \"url\": \"\"\n}"
+        },
+        "url": "{{baseUrl}}/api/financas/transacoes/anexos"
+      }
+    },
+    {
+      "name": "Finanças - Criar Meta",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"contaId\": {{contaId}},\n  \"nome\": \"Reserva de emergência\",\n  \"valorAlvo\": 5000,\n  \"valorAtual\": 1200,\n  \"dataInicio\": \"2026-01-01T00:00:00Z\",\n  \"dataFim\": \"2026-12-31T00:00:00Z\",\n  \"categoriaId\": {{categoriaId}}\n}"
+        },
+        "url": "{{baseUrl}}/api/financas/metas"
+      }
+    },
+    {
+      "name": "Finanças - Listar Metas",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/financas/metas?contaId={{contaId}}"
+      }
+    },
+    {
+      "name": "Finanças - Exportar CSV",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/financas/exportar?contaId={{contaId}}&formato=csv",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "financas", "exportar"],
+          "query": [
+            {"key": "contaId", "value": "{{contaId}}"},
+            {"key": "formato", "value": "csv"}
+          ]
+        }
+      }
+    },
+    {
+      "name": "Finanças - Exportar PDF",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/financas/exportar?contaId={{contaId}}&formato=pdf",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "financas", "exportar"],
+          "query": [
+            {"key": "contaId", "value": "{{contaId}}"},
+            {"key": "formato", "value": "pdf"}
+          ]
+        }
+      }
+    },
+    {
+      "name": "Finanças - Importar CSV",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "Arquivo",
+              "type": "file",
+              "src": ["teste.csv"]
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/financas/importar?contaId={{contaId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "financas", "importar"],
+          "query": [
+            {"key": "contaId", "value": "{{contaId}}"}
+          ]
+        }
+      }
+    },
+    {
+      "name": "Finanças - Upload Anexo",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "TransacaoId",
+              "value": "{{transacaoId}}",
+              "type": "text"
+            },
+            {
+              "key": "Tipo",
+              "value": "2",
+              "type": "text"
+            },
+            {
+              "key": "Arquivo",
+              "type": "file",
+              "src": ["bannerLinkedin.png"]
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/financas/transacoes/anexos/arquivo?contaId={{contaId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "financas", "transacoes", "anexos", "arquivo"],
+          "query": [
+            {"key": "contaId", "value": "{{contaId}}"}
+          ]
+        }
+      }
+    }
+  ]
+}
