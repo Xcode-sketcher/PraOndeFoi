@@ -59,6 +59,23 @@
       }
     },
     {
+      "name": "Auth - Perfil",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{PraOndeFoi_HostAddress}}/api/auth/perfil",
+          "host": ["{{PraOndeFoi_HostAddress}}"],
+          "path": ["api", "auth", "perfil"]
+        }
+      }
+    },
+    {
       "name": "Contas - Criar conta única",
       "request": {
         "method": "POST",
