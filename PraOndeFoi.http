@@ -169,3 +169,66 @@ GET {{PraOndeFoi_HostAddress}}/api/financas/metas?contaId={{contaId}}
 
 ### Finanças - Saldo atual
 GET {{PraOndeFoi_HostAddress}}/api/financas/saldo-atual?contaId={{contaId}}
+
+### Finanças - Atualizar transação
+PUT {{PraOndeFoi_HostAddress}}/api/financas/transacoes/{{transacaoId}}
+Content-Type: application/json
+
+{
+	"contaId": {{contaId}},
+	"tipo": 2,
+	"valor": 60.00,
+	"moeda": "BRL",
+	"dataTransacao": "2026-01-24T10:00:00Z",
+	"categoriaId": {{categoriaId}},
+	"descricao": "Almoço atualizado"
+}
+
+### Finanças - Deletar transação
+DELETE {{PraOndeFoi_HostAddress}}/api/financas/transacoes/{{transacaoId}}
+
+### Finanças - Atualizar orçamento
+PUT {{PraOndeFoi_HostAddress}}/api/financas/orcamentos/1
+Content-Type: application/json
+
+{
+	"contaId": {{contaId}},
+	"mes": 1,
+	"ano": 2026,
+	"categoriaId": {{categoriaId}},
+	"limite": 600
+}
+
+### Finanças - Deletar orçamento
+DELETE {{PraOndeFoi_HostAddress}}/api/financas/orcamentos/1
+
+### Finanças - Atualizar meta
+PUT {{PraOndeFoi_HostAddress}}/api/financas/metas/1
+Content-Type: application/json
+
+{
+	"contaId": {{contaId}},
+	"nome": "Reserva de emergência atualizada",
+	"valorAlvo": 6000,
+	"valorAtual": 1300,
+	"dataInicio": "2026-01-01T00:00:00Z",
+	"dataFim": "2026-12-31T00:00:00Z",
+	"categoriaId": {{categoriaId}}
+}
+
+### Finanças - Deletar meta
+DELETE {{PraOndeFoi_HostAddress}}/api/financas/metas/1
+
+### Finanças - Contribuir para meta
+POST {{PraOndeFoi_HostAddress}}/api/financas/metas/1/contribuir
+Content-Type: application/json
+
+{
+	"valor": 100
+}
+
+### Finanças - Insights com IA (previsões e sugestões)
+GET {{PraOndeFoi_HostAddress}}/api/financas/insights?contaId={{contaId}}&mesesHistorico=12
+
+### Finanças - Insights com IA (previsões e sugestões)
+GET {{PraOndeFoi_HostAddress}}/api/financas/insights?contaId={{contaId}}&mesesHistorico=12
