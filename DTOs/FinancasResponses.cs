@@ -18,6 +18,7 @@ namespace PraOndeFoi.DTOs
 
     public class OrcamentoStatusResponse
     {
+        public int OrcamentoId { get; set; }
         public int CategoriaId { get; set; }
         public string CategoriaNome { get; set; } = string.Empty;
         public int Mes { get; set; }
@@ -25,6 +26,17 @@ namespace PraOndeFoi.DTOs
         public decimal Limite { get; set; }
         public decimal Gasto { get; set; }
         public decimal Disponivel { get; set; }
+    }
+
+    public class OrcamentoResponse
+    {
+        public int Id { get; set; }
+        public int ContaId { get; set; }
+        public int Mes { get; set; }
+        public int Ano { get; set; }
+        public int CategoriaId { get; set; }
+        public string CategoriaNome { get; set; } = string.Empty;
+        public decimal Limite { get; set; }
     }
 
     public class TransacaoResponse

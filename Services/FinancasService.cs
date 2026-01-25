@@ -237,6 +237,7 @@ namespace PraOndeFoi.Services
                 var categoriaNome = categorias.FirstOrDefault(c => c.Id == o.CategoriaId)?.Nome ?? string.Empty;
                 return new OrcamentoStatusResponse
                 {
+                    OrcamentoId = o.Id,
                     CategoriaId = o.CategoriaId,
                     CategoriaNome = categoriaNome,
                     Mes = o.Mes,
@@ -245,6 +246,24 @@ namespace PraOndeFoi.Services
                     Gasto = gasto,
                     Disponivel = o.Limite - gasto
                 };
+            }).ToList();
+        }
+
+        public async Task<IReadOnlyList<OrcamentoResponse>> ObterOrcamentosAsync(int contaId, int mes, int ano)
+        {
+            await GarantirContaAsync(contaId);
+            var orcamentos = await _repository.ObterOrcamentosMesAsync(contaId, mes, ano);
+            var categorias = await ObterCategoriasAsync();
+
+            return orcamentos.Select(o => new OrcamentoResponse
+            {
+                Id = o.Id,
+                ContaId = o.ContaId,
+                Mes = o.Mes,
+                Ano = o.Ano,
+                CategoriaId = o.CategoriaId,
+                CategoriaNome = categorias.FirstOrDefault(c => c.Id == o.CategoriaId)?.Nome ?? string.Empty,
+                Limite = o.Limite
             }).ToList();
         }
 
