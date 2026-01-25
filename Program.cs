@@ -91,9 +91,7 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddCors(options =>
 {
-    var allowedOrigins = builder.Configuration["AllowedOrigins"]?.Split(',') ?? new string[0];
-    var defaultOrigins = new[] { "http://localhost:3000", "http://localhost:4200", "http://localhost:5173", "https://localhost:3000", "https://localhost:4200", "https://localhost:5173" };
-    var allOrigins = defaultOrigins.Concat(allowedOrigins).Distinct().ToArray();
+    var allOrigins = new[] { "http://localhost:4200" };
 
     options.AddPolicy("AllowAll", policy =>
     {
