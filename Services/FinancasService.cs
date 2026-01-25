@@ -536,7 +536,7 @@ namespace PraOndeFoi.Services
                 entry.Size = 1;
 
                 var agora = DateTime.UtcNow;
-                var mesReferencia = new DateTime(agora.Year, agora.Month, 1);
+                var mesReferencia = new DateTime(agora.Year, agora.Month, 1, 0, 0, 0, DateTimeKind.Utc);
                 var inicio = mesReferencia.AddMonths(-(mesesHistorico - 1));
                 var fim = mesReferencia.AddMonths(1).AddTicks(-1);
 
