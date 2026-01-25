@@ -91,12 +91,37 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddCors(options =>
 {
-
-    options.AddPolicy("AllowAll", policy =>
+    var allowedOriginsSetting = builder.Configuration["AllowedOrigins"];
+    string[] allowedOrigins = Array.Empty<string>();
+    if (!string.IsNullOrWhiteSpace(allowedOriginsSetting))
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        allowedOrigins = allowedOriginsSetting.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    }
+    else if (builder.Environment.IsDevelopment())
+    {
+        allowedOrigins = new[] { "http://localhost:4200" };
+    }
+
+    options.AddPolicy("DefaultCorsPolicy", policy =>
+    {
+        if (allowedOrigins.Length == 0)
+        {
+            policy.AllowAnyMethod()
+                  .AllowAnyHeader();
+        }
+        else if (allowedOrigins.Length == 1 && allowedOrigins[0] == "*")
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        }
+        else
+        {
+            policy.WithOrigins(allowedOrigins)
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials();
+        }
     });
 });
 
@@ -126,7 +151,11 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseCors("AllowAll");
+var _corsOrigins = builder.Configuration["AllowedOrigins"];
+var _logger = app.Services.GetRequiredService<ILogger<Program>>();
+_logger.LogInformation("CORS configurado. AllowedOrigins: {AllowedOrigins}", string.IsNullOrWhiteSpace(_corsOrigins) ? (app.Environment.IsDevelopment() ? "http://localhost:4200 (dev default)" : "none") : _corsOrigins);
+
+app.UseCors("DefaultCorsPolicy");
 
 app.UseAuthentication();
 app.UseAuthorization();
