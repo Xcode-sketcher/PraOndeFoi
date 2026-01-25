@@ -111,4 +111,16 @@ namespace PraOndeFoi.DTOs
         [Range(3, 24)]
         public int MesesHistorico { get; set; } = 12;
     }
+
+    public class OrcamentoAnaliseQueryRequest
+    {
+        [Range(1, int.MaxValue)]
+        public int ContaId { get; set; }
+        [Range(1, 12)]
+        public int Mes { get; set; } = DateTime.UtcNow.Month;
+        [Range(2000, 2100)]
+        public int Ano { get; set; } = DateTime.UtcNow.Year;
+        [Range(1, 24)]
+        public int Meses { get; set; } = 3;
+    }
 }

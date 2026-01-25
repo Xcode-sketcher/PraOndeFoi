@@ -267,6 +267,128 @@ namespace PraOndeFoi.Services
             }).ToList();
         }
 
+        public async Task<OrcamentoAnaliseResponse> ObterAnaliseOrcamentosAsync(OrcamentoAnaliseQueryRequest request)
+        {
+            await GarantirContaAsync(request.ContaId);
+
+            var meses = Math.Clamp(request.Meses, 1, 24);
+            var mesRef = request.Mes;
+            var anoRef = request.Ano;
+            var referencia = new DateTime(anoRef, mesRef, 1, 0, 0, 0, DateTimeKind.Utc);
+            var inicio = referencia.AddMonths(-(meses - 1));
+
+            var versao = _contaCacheService.ObterVersao(request.ContaId);
+            var cacheKey = $"orcamentos-analise:{request.ContaId}:{mesRef}:{anoRef}:{meses}:v{versao}";
+
+            return await _cache.GetOrCreateAsync(cacheKey, async entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = CacheDuracao;
+                entry.SlidingExpiration = TimeSpan.FromMinutes(2);
+                entry.Size = 1;
+
+                var categorias = await ObterCategoriasAsync();
+                var gastosPorCategoriaTotal = new Dictionary<int, decimal>();
+                var totalLimite = 0m;
+                var totalGasto = 0m;
+
+                List<OrcamentoMensal>? orcamentosReferencia = null;
+                List<(int CategoriaId, decimal Total)>? gastosReferencia = null;
+
+                for (var i = 0; i < meses; i++)
+                {
+                    var mesAtual = inicio.AddMonths(i);
+                    var orcamentosMes = await _repository.ObterOrcamentosMesAsync(request.ContaId, mesAtual.Month, mesAtual.Year);
+                    var gastosMes = await _repository.ObterGastosPorCategoriaAsync(request.ContaId, mesAtual.Month, mesAtual.Year);
+
+                    totalLimite += orcamentosMes.Sum(o => o.Limite);
+                    totalGasto += gastosMes.Sum(g => g.Total);
+
+                    foreach (var gasto in gastosMes)
+                    {
+                        gastosPorCategoriaTotal.TryGetValue(gasto.CategoriaId, out var acumulado);
+                        gastosPorCategoriaTotal[gasto.CategoriaId] = acumulado + gasto.Total;
+                    }
+
+                    if (mesAtual.Month == mesRef && mesAtual.Year == anoRef)
+                    {
+                        orcamentosReferencia = orcamentosMes;
+                        gastosReferencia = gastosMes;
+                    }
+                }
+
+                orcamentosReferencia ??= await _repository.ObterOrcamentosMesAsync(request.ContaId, mesRef, anoRef);
+                gastosReferencia ??= await _repository.ObterGastosPorCategoriaAsync(request.ContaId, mesRef, anoRef);
+
+                var gastosReferenciaMap = gastosReferencia.ToDictionary(g => g.CategoriaId, g => g.Total);
+
+                var orcamentosUso = orcamentosReferencia
+                    .Select(o =>
+                    {
+                        gastosReferenciaMap.TryGetValue(o.CategoriaId, out var gasto);
+                        var categoriaNome = categorias.FirstOrDefault(c => c.Id == o.CategoriaId)?.Nome ?? string.Empty;
+                        var percentual = o.Limite > 0 ? gasto / o.Limite : 0m;
+
+                        return new OrcamentoUsoPercentualResponse
+                        {
+                            OrcamentoId = o.Id,
+                            CategoriaId = o.CategoriaId,
+                            CategoriaNome = categoriaNome,
+                            Limite = o.Limite,
+                            Gasto = gasto,
+                            PercentualUso = percentual
+                        };
+                    })
+                    .ToList();
+
+                var gastosCategoria = gastosPorCategoriaTotal
+                    .Select(item =>
+                    {
+                        var categoriaNome = categorias.FirstOrDefault(c => c.Id == item.Key)?.Nome ?? string.Empty;
+                        var percentual = totalGasto > 0 ? item.Value / totalGasto : 0m;
+                        return new GastoCategoriaResponse
+                        {
+                            CategoriaId = item.Key,
+                            CategoriaNome = categoriaNome,
+                            Total = item.Value,
+                            Percentual = percentual
+                        };
+                    })
+                    .OrderByDescending(c => c.Total)
+                    .ToList();
+
+                var mediaLimite = totalLimite / meses;
+                var mediaGasto = totalGasto / meses;
+                var mediaUso = mediaLimite > 0 ? mediaGasto / mediaLimite : 0m;
+
+                return new OrcamentoAnaliseResponse
+                {
+                    ContaId = request.ContaId,
+                    MesReferencia = mesRef,
+                    AnoReferencia = anoRef,
+                    MesesConsiderados = meses,
+                    Media = new OrcamentoMediaResponse
+                    {
+                        MediaLimite = mediaLimite,
+                        MediaGasto = mediaGasto,
+                        MediaUsoPercentual = mediaUso
+                    },
+                    OrcamentosUsoPercentual = orcamentosUso,
+                    GastosPorCategoria = gastosCategoria,
+                    DistribuicaoPizza = new DistribuicaoPizzaResponse
+                    {
+                        TotalGastos = totalGasto,
+                        Itens = gastosCategoria
+                    }
+                };
+            }) ?? new OrcamentoAnaliseResponse
+            {
+                ContaId = request.ContaId,
+                MesReferencia = mesRef,
+                AnoReferencia = anoRef,
+                MesesConsiderados = meses
+            };
+        }
+
         public async Task<PagedResponse<TransacaoResponse>> ObterTransacoesAsync(TransacaoQueryRequest request)
         {
             await GarantirContaAsync(request.ContaId);

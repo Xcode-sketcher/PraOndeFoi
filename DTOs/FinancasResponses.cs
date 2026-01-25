@@ -39,6 +39,49 @@ namespace PraOndeFoi.DTOs
         public decimal Limite { get; set; }
     }
 
+    public class OrcamentoAnaliseResponse
+    {
+        public int ContaId { get; set; }
+        public int MesReferencia { get; set; }
+        public int AnoReferencia { get; set; }
+        public int MesesConsiderados { get; set; }
+        public OrcamentoMediaResponse Media { get; set; } = new OrcamentoMediaResponse();
+        public IReadOnlyList<OrcamentoUsoPercentualResponse> OrcamentosUsoPercentual { get; set; } = new List<OrcamentoUsoPercentualResponse>();
+        public IReadOnlyList<GastoCategoriaResponse> GastosPorCategoria { get; set; } = new List<GastoCategoriaResponse>();
+        public DistribuicaoPizzaResponse DistribuicaoPizza { get; set; } = new DistribuicaoPizzaResponse();
+    }
+
+    public class OrcamentoMediaResponse
+    {
+        public decimal MediaLimite { get; set; }
+        public decimal MediaGasto { get; set; }
+        public decimal MediaUsoPercentual { get; set; }
+    }
+
+    public class OrcamentoUsoPercentualResponse
+    {
+        public int OrcamentoId { get; set; }
+        public int CategoriaId { get; set; }
+        public string CategoriaNome { get; set; } = string.Empty;
+        public decimal Limite { get; set; }
+        public decimal Gasto { get; set; }
+        public decimal PercentualUso { get; set; }
+    }
+
+    public class GastoCategoriaResponse
+    {
+        public int CategoriaId { get; set; }
+        public string CategoriaNome { get; set; } = string.Empty;
+        public decimal Total { get; set; }
+        public decimal Percentual { get; set; }
+    }
+
+    public class DistribuicaoPizzaResponse
+    {
+        public decimal TotalGastos { get; set; }
+        public IReadOnlyList<GastoCategoriaResponse> Itens { get; set; } = new List<GastoCategoriaResponse>();
+    }
+
     public class TransacaoResponse
     {
         public int Id { get; set; }

@@ -150,6 +150,20 @@ namespace PraOndeFoi.Controllers
             }
         }
 
+        [HttpGet("orcamentos/analises")]
+        public async Task<IActionResult> ObterAnaliseOrcamentos([FromQuery] OrcamentoAnaliseQueryRequest request)
+        {
+            try
+            {
+                var analise = await _financasService.ObterAnaliseOrcamentosAsync(request);
+                return Ok(analise);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
         [HttpGet("resumo-mensal")]
         public async Task<IActionResult> ObterResumoMensal([FromQuery] int contaId, [FromQuery] int mes, [FromQuery] int ano)
         {
