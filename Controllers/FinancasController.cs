@@ -13,13 +13,15 @@ namespace PraOndeFoi.Controllers
         private readonly IExportacaoService _exportacaoService;
         private readonly IImportacaoService _importacaoService;
         private readonly IAnexoStorageService _anexoStorageService;
+        private readonly ILogger<FinancasController> _logger;
 
-        public FinancasController(IFinancasService financasService, IExportacaoService exportacaoService, IImportacaoService importacaoService, IAnexoStorageService anexoStorageService)
+        public FinancasController(IFinancasService financasService, IExportacaoService exportacaoService, IImportacaoService importacaoService, IAnexoStorageService anexoStorageService, ILogger<FinancasController> logger)
         {
             _financasService = financasService;
             _exportacaoService = exportacaoService;
             _importacaoService = importacaoService;
             _anexoStorageService = anexoStorageService;
+            _logger = logger;
         }
 
         [HttpPost("transacoes")]
@@ -186,7 +188,13 @@ namespace PraOndeFoi.Controllers
             }
             catch (InvalidOperationException ex)
             {
+                _logger.LogWarning(ex, "InvalidOperation ao obter insights: {Message}", ex.Message);
                 return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro inesperado ao obter insights");
+                return StatusCode(500, new { error = "Erro interno ao gerar insights. Verifique os logs do servidor." });
             }
         }
 
