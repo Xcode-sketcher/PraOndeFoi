@@ -253,6 +253,20 @@ namespace PraOndeFoi.Controllers
             }
         }
 
+        [HttpPost("metas/{metaId}/contribuir")]
+        public async Task<IActionResult> ContribuirMeta(int metaId, [FromBody] ContribuirMetaRequest request)
+        {
+            try
+            {
+                var meta = await _financasService.ContribuirMetaAsync(metaId, request);
+                return Ok(meta);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
         [HttpGet("saldo-atual")]
         public async Task<IActionResult> ObterSaldoAtual([FromQuery] int contaId)
         {

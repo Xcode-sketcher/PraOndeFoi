@@ -185,6 +185,16 @@ namespace PraOndeFoi.Repository
             return _db.MetasFinanceiras.AsNoTracking().Where(m => m.ContaId == contaId).OrderBy(m => m.DataInicio).ToListAsync();
         }
 
+        public void AtualizarMeta(MetaFinanceira meta)
+        {
+            _db.MetasFinanceiras.Update(meta);
+        }
+
+        public Task<MetaFinanceira?> ObterMetaPorIdAsync(int metaId)
+        {
+            return _db.MetasFinanceiras.FirstOrDefaultAsync(m => m.Id == metaId);
+        }
+
         public Task<List<Transacao>> ObterTodasTransacoesAsync(int contaId)
         {
             return _db.Transacoes

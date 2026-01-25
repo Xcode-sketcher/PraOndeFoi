@@ -335,6 +335,26 @@ namespace PraOndeFoi.Services
             return await _repository.ObterMetasAsync(contaId);
         }
 
+        public async Task<MetaFinanceira> ContribuirMetaAsync(int metaId, ContribuirMetaRequest request)
+        {
+            var meta = await _repository.ObterMetaPorIdAsync(metaId);
+            if (meta == null)
+            {
+                throw new InvalidOperationException("Meta não encontrada.");
+            }
+
+            // Verificar se a meta pertence ao usuário (através da conta)
+            await GarantirContaAsync(meta.ContaId);
+
+            meta.ValorAtual += request.Valor;
+            _repository.AtualizarMeta(meta);
+
+            // Invalidar cache da conta
+            _contaCacheService.IncrementarVersao(meta.ContaId);
+
+            return meta;
+        }
+
         public async Task<decimal> ObterSaldoAtualAsync(int contaId)
         {
             await GarantirContaAsync(contaId);

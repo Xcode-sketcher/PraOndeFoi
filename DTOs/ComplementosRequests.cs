@@ -51,4 +51,10 @@ namespace PraOndeFoi.DTOs
         [Required]
         public IFormFile Arquivo { get; set; } = null!;
     }
+
+    public class ContribuirMetaRequest
+    {
+        [Range(0.01, double.MaxValue)]
+        public decimal Valor { get; set; }
+    }
 }

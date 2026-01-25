@@ -19,6 +19,7 @@ namespace PraOndeFoi.Services
         Task<AnexoTransacao> AdicionarAnexoAsync(NovoAnexoTransacaoRequest request);
         Task<MetaFinanceira> CriarMetaAsync(NovaMetaRequest request);
         Task<IReadOnlyList<MetaFinanceira>> ObterMetasAsync(int contaId);
+        Task<MetaFinanceira> ContribuirMetaAsync(int metaId, ContribuirMetaRequest request);
         Task<decimal> ObterSaldoAtualAsync(int contaId);
     }
 }

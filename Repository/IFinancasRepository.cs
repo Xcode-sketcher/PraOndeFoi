@@ -26,8 +26,10 @@ namespace PraOndeFoi.Repository
         void AdicionarTransacaoTag(TransacaoTag transacaoTag);
         void AdicionarAnexo(AnexoTransacao anexo);
         void AdicionarMeta(MetaFinanceira meta);
+        void AtualizarMeta(MetaFinanceira meta);
         Task<List<Tag>> ObterTagsContaAsync(int contaId);
         Task<List<MetaFinanceira>> ObterMetasAsync(int contaId);
+        Task<MetaFinanceira?> ObterMetaPorIdAsync(int metaId);
         Task<bool> TransacaoTagExisteAsync(int transacaoId, int tagId);
         Task<List<Transacao>> ObterTodasTransacoesAsync(int contaId);
         Task<List<Transacao>> ObterTransacoesParaExportacaoAsync(int contaId, DateTime? inicio, DateTime? fim);
