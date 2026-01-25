@@ -91,14 +91,12 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddCors(options =>
 {
-    var allOrigins = new[] { "http://localhost:4200" };
 
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.WithOrigins(allOrigins)
+        policy.AllowAnyOrigin()
               .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+              .AllowAnyHeader();
     });
 });
 
