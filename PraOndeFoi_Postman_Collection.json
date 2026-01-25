@@ -340,6 +340,36 @@
       }
     },
     {
+      "name": "Finanças - Análises de Orçamentos",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{PraOndeFoi_HostAddress}}/api/financas/orcamentos/analises?contaId={{contaId}}&mes=1&ano=2026&meses=3",
+          "host": ["{{PraOndeFoi_HostAddress}}"],
+          "path": ["api", "financas", "orcamentos", "analises"],
+          "query": [
+            {
+              "key": "contaId",
+              "value": "{{contaId}}"
+            },
+            {
+              "key": "mes",
+              "value": "1"
+            },
+            {
+              "key": "ano",
+              "value": "2026"
+            },
+            {
+              "key": "meses",
+              "value": "3"
+            }
+          ]
+        }
+      }
+    },
+    {
       "name": "Finanças - Criar tag",
       "request": {
         "method": "POST",
