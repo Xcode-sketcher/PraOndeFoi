@@ -38,6 +38,16 @@ namespace PraOndeFoi.Repository
             _db.OrcamentosMensais.Add(orcamento);
         }
 
+        public void AtualizarOrcamento(OrcamentoMensal orcamento)
+        {
+            _db.OrcamentosMensais.Update(orcamento);
+        }
+
+        public void RemoverOrcamento(OrcamentoMensal orcamento)
+        {
+            _db.OrcamentosMensais.Remove(orcamento);
+        }
+
         public Task<int> SalvarAsync()
         {
             return _db.SaveChangesAsync();
@@ -123,6 +133,11 @@ namespace PraOndeFoi.Repository
                 .ToListAsync();
         }
 
+        public Task<OrcamentoMensal?> ObterOrcamentoPorIdAsync(int orcamentoId)
+        {
+            return _db.OrcamentosMensais.FirstOrDefaultAsync(o => o.Id == orcamentoId);
+        }
+
         public async Task<List<(int CategoriaId, decimal Total)>> ObterGastosPorCategoriaAsync(int contaId, int mes, int ano)
         {
             var resultado = await _db.Transacoes
@@ -153,6 +168,16 @@ namespace PraOndeFoi.Repository
                     .ThenInclude(tt => tt.Tag)
                 .Include(t => t.Anexos)
                 .FirstOrDefaultAsync(t => t.Id == transacaoId);
+        }
+
+        public void AtualizarTransacao(Transacao transacao)
+        {
+            _db.Transacoes.Update(transacao);
+        }
+
+        public void RemoverTransacao(Transacao transacao)
+        {
+            _db.Transacoes.Remove(transacao);
         }
 
         public void AdicionarTag(Tag tag)
@@ -188,6 +213,11 @@ namespace PraOndeFoi.Repository
         public void AtualizarMeta(MetaFinanceira meta)
         {
             _db.MetasFinanceiras.Update(meta);
+        }
+
+        public void RemoverMeta(MetaFinanceira meta)
+        {
+            _db.MetasFinanceiras.Remove(meta);
         }
 
         public Task<MetaFinanceira?> ObterMetaPorIdAsync(int metaId)

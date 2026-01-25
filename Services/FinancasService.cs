@@ -117,6 +117,47 @@ namespace PraOndeFoi.Services
             return orcamento;
         }
 
+        public async Task<OrcamentoMensal> AtualizarOrcamentoAsync(int orcamentoId, NovoOrcamentoRequest request)
+        {
+            await GarantirContaAsync(request.ContaId);
+            ValidarValor(request.Limite);
+
+            var orcamento = await _repository.ObterOrcamentoPorIdAsync(orcamentoId);
+            if (orcamento == null)
+            {
+                throw new InvalidOperationException("Orçamento não encontrado.");
+            }
+
+            if (orcamento.ContaId != request.ContaId)
+            {
+                throw new InvalidOperationException("Orçamento não pertence à conta informada.");
+            }
+
+            orcamento.Mes = request.Mes;
+            orcamento.Ano = request.Ano;
+            orcamento.CategoriaId = request.CategoriaId;
+            orcamento.Limite = request.Limite;
+
+            _repository.AtualizarOrcamento(orcamento);
+            await _repository.SalvarAsync();
+            _contaCacheService.IncrementarVersao(request.ContaId);
+            return orcamento;
+        }
+
+        public async Task RemoverOrcamentoAsync(int orcamentoId)
+        {
+            var orcamento = await _repository.ObterOrcamentoPorIdAsync(orcamentoId);
+            if (orcamento == null)
+            {
+                throw new InvalidOperationException("Orçamento não encontrado.");
+            }
+
+            await GarantirContaAsync(orcamento.ContaId);
+            _repository.RemoverOrcamento(orcamento);
+            await _repository.SalvarAsync();
+            _contaCacheService.IncrementarVersao(orcamento.ContaId);
+        }
+
         public async Task<ResumoMensalResponse> ObterResumoMensalAsync(int contaId, int mes, int ano)
         {
             await GarantirContaAsync(contaId);
@@ -208,6 +249,49 @@ namespace PraOndeFoi.Services
             await GarantirContaAsync(contaId);
             var transacoes = await _repository.ObterTransacoesFiltradasAsync(contaId, tipo, categoriaId, inicio, fim);
             return transacoes.Select(t => MapToTransacaoResponse(t, "Conta")).ToList();
+        }
+
+        public async Task<Transacao> AtualizarTransacaoAsync(int transacaoId, NovaTransacaoRequest request)
+        {
+            await GarantirContaAsync(request.ContaId);
+            ValidarValor(request.Valor);
+
+            var transacao = await _repository.ObterTransacaoAsync(transacaoId);
+            if (transacao == null)
+            {
+                throw new InvalidOperationException("Transação não encontrada.");
+            }
+
+            if (transacao.ContaId != request.ContaId)
+            {
+                throw new InvalidOperationException("Transação não pertence à conta informada.");
+            }
+
+            transacao.Tipo = request.Tipo;
+            transacao.Valor = request.Valor;
+            transacao.Moeda = request.Moeda;
+            transacao.DataTransacao = request.DataTransacao;
+            transacao.CategoriaId = request.CategoriaId;
+            transacao.Descricao = request.Descricao;
+
+            _repository.AtualizarTransacao(transacao);
+            await _repository.SalvarAsync();
+            _contaCacheService.IncrementarVersao(request.ContaId);
+            return transacao;
+        }
+
+        public async Task RemoverTransacaoAsync(int transacaoId)
+        {
+            var transacao = await _repository.ObterTransacaoAsync(transacaoId);
+            if (transacao == null)
+            {
+                throw new InvalidOperationException("Transação não encontrada.");
+            }
+
+            await GarantirContaAsync(transacao.ContaId);
+            _repository.RemoverTransacao(transacao);
+            await _repository.SalvarAsync();
+            _contaCacheService.IncrementarVersao(transacao.ContaId);
         }
 
         public async Task<IReadOnlyList<Categoria>> ObterCategoriasAsync()
@@ -348,11 +432,55 @@ namespace PraOndeFoi.Services
 
             meta.ValorAtual += request.Valor;
             _repository.AtualizarMeta(meta);
+            await _repository.SalvarAsync();
 
             // Invalidar cache da conta
             _contaCacheService.IncrementarVersao(meta.ContaId);
 
             return meta;
+        }
+
+        public async Task<MetaFinanceira> AtualizarMetaAsync(int metaId, NovaMetaRequest request)
+        {
+            await GarantirContaAsync(request.ContaId);
+            ValidarValor(request.ValorAlvo);
+
+            var meta = await _repository.ObterMetaPorIdAsync(metaId);
+            if (meta == null)
+            {
+                throw new InvalidOperationException("Meta não encontrada.");
+            }
+
+            if (meta.ContaId != request.ContaId)
+            {
+                throw new InvalidOperationException("Meta não pertence à conta informada.");
+            }
+
+            meta.Nome = request.Nome;
+            meta.ValorAlvo = request.ValorAlvo;
+            meta.ValorAtual = request.ValorAtual;
+            meta.DataInicio = request.DataInicio;
+            meta.DataFim = request.DataFim;
+            meta.CategoriaId = request.CategoriaId;
+
+            _repository.AtualizarMeta(meta);
+            await _repository.SalvarAsync();
+            _contaCacheService.IncrementarVersao(meta.ContaId);
+            return meta;
+        }
+
+        public async Task RemoverMetaAsync(int metaId)
+        {
+            var meta = await _repository.ObterMetaPorIdAsync(metaId);
+            if (meta == null)
+            {
+                throw new InvalidOperationException("Meta não encontrada.");
+            }
+
+            await GarantirContaAsync(meta.ContaId);
+            _repository.RemoverMeta(meta);
+            await _repository.SalvarAsync();
+            _contaCacheService.IncrementarVersao(meta.ContaId);
         }
 
         public async Task<decimal> ObterSaldoAtualAsync(int contaId)

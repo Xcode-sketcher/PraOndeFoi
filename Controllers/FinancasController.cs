@@ -36,6 +36,34 @@ namespace PraOndeFoi.Controllers
             }
         }
 
+        [HttpPut("transacoes/{transacaoId:int}")]
+        public async Task<IActionResult> AtualizarTransacao(int transacaoId, [FromBody] NovaTransacaoRequest request)
+        {
+            try
+            {
+                var transacao = await _financasService.AtualizarTransacaoAsync(transacaoId, request);
+                return Ok(transacao);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpDelete("transacoes/{transacaoId:int}")]
+        public async Task<IActionResult> RemoverTransacao(int transacaoId)
+        {
+            try
+            {
+                await _financasService.RemoverTransacaoAsync(transacaoId);
+                return Ok(new { message = "Transação removida com sucesso." });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
         [HttpPost("recorrencias")]
         public async Task<IActionResult> CriarRecorrencia([FromBody] NovaRecorrenciaRequest request)
         {
@@ -71,6 +99,34 @@ namespace PraOndeFoi.Controllers
             {
                 var orcamento = await _financasService.CriarOrcamentoAsync(request);
                 return Ok(orcamento);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpPut("orcamentos/{orcamentoId:int}")]
+        public async Task<IActionResult> AtualizarOrcamento(int orcamentoId, [FromBody] NovoOrcamentoRequest request)
+        {
+            try
+            {
+                var orcamento = await _financasService.AtualizarOrcamentoAsync(orcamentoId, request);
+                return Ok(orcamento);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpDelete("orcamentos/{orcamentoId:int}")]
+        public async Task<IActionResult> RemoverOrcamento(int orcamentoId)
+        {
+            try
+            {
+                await _financasService.RemoverOrcamentoAsync(orcamentoId);
+                return Ok(new { message = "Orçamento removido com sucesso." });
             }
             catch (InvalidOperationException ex)
             {
@@ -232,6 +288,34 @@ namespace PraOndeFoi.Controllers
             {
                 var meta = await _financasService.CriarMetaAsync(request);
                 return Ok(meta);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpPut("metas/{metaId:int}")]
+        public async Task<IActionResult> AtualizarMeta(int metaId, [FromBody] NovaMetaRequest request)
+        {
+            try
+            {
+                var meta = await _financasService.AtualizarMetaAsync(metaId, request);
+                return Ok(meta);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpDelete("metas/{metaId:int}")]
+        public async Task<IActionResult> RemoverMeta(int metaId)
+        {
+            try
+            {
+                await _financasService.RemoverMetaAsync(metaId);
+                return Ok(new { message = "Meta removida com sucesso." });
             }
             catch (InvalidOperationException ex)
             {
