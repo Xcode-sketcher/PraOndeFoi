@@ -244,11 +244,45 @@ namespace PraOndeFoi.Services
             }).ToList();
         }
 
-        public async Task<IReadOnlyList<TransacaoResponse>> ObterTransacoesAsync(int contaId, TipoMovimento? tipo, int? categoriaId, DateTime? inicio, DateTime? fim)
+        public async Task<PagedResponse<TransacaoResponse>> ObterTransacoesAsync(TransacaoQueryRequest request)
         {
-            await GarantirContaAsync(contaId);
-            var transacoes = await _repository.ObterTransacoesFiltradasAsync(contaId, tipo, categoriaId, inicio, fim);
-            return transacoes.Select(t => MapToTransacaoResponse(t, "Conta")).ToList();
+            await GarantirContaAsync(request.ContaId);
+
+            var inicioUtc = ParseDateUtc(request.Inicio, isFim: false);
+            var fimUtc = ParseDateUtc(request.Fim, isFim: true);
+
+            var page = Math.Max(1, request.Page);
+            var pageSize = Math.Min(10, Math.Max(1, request.PageSize));
+
+            var resultado = await _repository.ObterTransacoesPaginadasAsync(
+                request.ContaId,
+                request.Tipo,
+                request.CategoriaId,
+                inicioUtc,
+                fimUtc,
+                request.ValorMin,
+                request.ValorMax,
+                request.Tags,
+                request.Search,
+                request.Ordenacao,
+                page,
+                pageSize);
+
+            var totalPages = resultado.Total == 0 ? 0 : (int)Math.Ceiling(resultado.Total / (double)pageSize);
+
+            return new PagedResponse<TransacaoResponse>
+            {
+                Data = resultado.Transacoes.Select(t => MapToTransacaoResponse(t, "Conta")).ToList(),
+                Pagination = new PaginationMetadata
+                {
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalItems = resultado.Total,
+                    TotalPages = totalPages,
+                    HasNext = page < totalPages,
+                    HasPrevious = page > 1
+                }
+            };
         }
 
         public async Task<Transacao> AtualizarTransacaoAsync(int transacaoId, NovaTransacaoRequest request)
@@ -521,6 +555,27 @@ namespace PraOndeFoi.Services
             {
                 throw new InvalidOperationException("Valor deve ser maior que zero.");
             }
+        }
+
+        private static DateTime? ParseDateUtc(string? value, bool isFim)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
+            if (!DateTime.TryParse(value, out var dt))
+            {
+                return null;
+            }
+
+            var data = dt.Date;
+            if (isFim)
+            {
+                data = data.AddDays(1).AddTicks(-1);
+            }
+
+            return DateTime.SpecifyKind(data, DateTimeKind.Utc);
         }
 
         private static TransacaoResponse MapToTransacaoResponse(Transacao t, string contaNome)

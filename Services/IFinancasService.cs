@@ -13,7 +13,7 @@ namespace PraOndeFoi.Services
         Task RemoverOrcamentoAsync(int orcamentoId);
         Task<ResumoMensalResponse> ObterResumoMensalAsync(int contaId, int mes, int ano);
         Task<IReadOnlyList<OrcamentoStatusResponse>> ObterStatusOrcamentosAsync(int contaId, int mes, int ano);
-        Task<IReadOnlyList<TransacaoResponse>> ObterTransacoesAsync(int contaId, TipoMovimento? tipo, int? categoriaId, DateTime? inicio, DateTime? fim);
+        Task<PagedResponse<TransacaoResponse>> ObterTransacoesAsync(TransacaoQueryRequest request);
         Task<Transacao> AtualizarTransacaoAsync(int transacaoId, NovaTransacaoRequest request);
         Task RemoverTransacaoAsync(int transacaoId);
         Task<IReadOnlyList<Categoria>> ObterCategoriasAsync();

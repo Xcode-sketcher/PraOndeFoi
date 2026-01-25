@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PraOndeFoi.Data;
+using PraOndeFoi.DTOs;
 using PraOndeFoi.Models;
 
 namespace PraOndeFoi.Repository
@@ -61,7 +62,7 @@ namespace PraOndeFoi.Repository
                 .ToListAsync();
         }
 
-        public Task<List<Transacao>> ObterTransacoesFiltradasAsync(int contaId, TipoMovimento? tipo, int? categoriaId, DateTime? inicio, DateTime? fim)
+        public async Task<(List<Transacao> Transacoes, int Total)> ObterTransacoesPaginadasAsync(int contaId, TipoMovimento? tipo, int? categoriaId, DateTime? inicio, DateTime? fim, decimal? valorMin, decimal? valorMax, IReadOnlyList<int> tags, string? search, OrdenacaoTransacao ordenacao, int page, int pageSize)
         {
             var query = _db.Transacoes
                 .AsNoTracking()
@@ -92,7 +93,43 @@ namespace PraOndeFoi.Repository
                 query = query.Where(t => t.DataTransacao <= fim.Value);
             }
 
-            return query.OrderByDescending(t => t.DataTransacao).ToListAsync();
+            if (valorMin.HasValue)
+            {
+                query = query.Where(t => t.Valor >= valorMin.Value);
+            }
+
+            if (valorMax.HasValue)
+            {
+                query = query.Where(t => t.Valor <= valorMax.Value);
+            }
+
+            if (tags.Count > 0)
+            {
+                query = query.Where(t => t.Tags != null && t.Tags.Any(tt => tags.Contains(tt.TagId)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var termo = search.Trim();
+                query = query.Where(t => EF.Functions.ILike(t.Descricao, $"%{termo}%")
+                    || (t.Categoria != null && EF.Functions.ILike(t.Categoria.Nome, $"%{termo}%")));
+            }
+
+            query = ordenacao switch
+            {
+                OrdenacaoTransacao.DataAsc => query.OrderBy(t => t.DataTransacao),
+                OrdenacaoTransacao.ValorAsc => query.OrderBy(t => t.Valor),
+                OrdenacaoTransacao.ValorDesc => query.OrderByDescending(t => t.Valor),
+                _ => query.OrderByDescending(t => t.DataTransacao)
+            };
+
+            var total = await query.CountAsync();
+            var itens = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (itens, total);
         }
 
         public Task<List<Recorrencia>> ObterRecorrenciasAtivasAsync(int contaId)

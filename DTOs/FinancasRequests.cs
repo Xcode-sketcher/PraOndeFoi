@@ -74,4 +74,33 @@ namespace PraOndeFoi.DTOs
         [Range(0.01, double.MaxValue)]
         public decimal Limite { get; set; }
     }
+
+    public enum OrdenacaoTransacao
+    {
+        DataDesc,
+        DataAsc,
+        ValorDesc,
+        ValorAsc
+    }
+
+    public class TransacaoQueryRequest
+    {
+        [Range(1, int.MaxValue)]
+        public int ContaId { get; set; }
+        public TipoMovimento? Tipo { get; set; }
+        public int? CategoriaId { get; set; }
+        public string? Inicio { get; set; }
+        public string? Fim { get; set; }
+        [Range(0.01, double.MaxValue)]
+        public decimal? ValorMin { get; set; }
+        [Range(0.01, double.MaxValue)]
+        public decimal? ValorMax { get; set; }
+        public List<int> Tags { get; set; } = new();
+        public string? Search { get; set; }
+        public OrdenacaoTransacao Ordenacao { get; set; } = OrdenacaoTransacao.DataDesc;
+        [Range(1, int.MaxValue)]
+        public int Page { get; set; } = 1;
+        [Range(1, 10)]
+        public int PageSize { get; set; } = 10;
+    }
 }

@@ -65,4 +65,20 @@ namespace PraOndeFoi.DTOs
         public string UsuarioNome { get; set; } = string.Empty;
         public IReadOnlyList<TransacaoResponse> Transacoes { get; set; } = new List<TransacaoResponse>();
     }
+
+    public class PaginationMetadata
+    {
+        public int Page { get; set; }
+        public int PageSize { get; set; }
+        public int TotalItems { get; set; }
+        public int TotalPages { get; set; }
+        public bool HasNext { get; set; }
+        public bool HasPrevious { get; set; }
+    }
+
+    public class PagedResponse<T>
+    {
+        public IReadOnlyList<T> Data { get; set; } = new List<T>();
+        public PaginationMetadata Pagination { get; set; } = new PaginationMetadata();
+    }
 }

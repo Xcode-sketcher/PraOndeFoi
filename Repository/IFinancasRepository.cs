@@ -1,3 +1,4 @@
+using PraOndeFoi.DTOs;
 using PraOndeFoi.Models;
 
 namespace PraOndeFoi.Repository
@@ -14,7 +15,7 @@ namespace PraOndeFoi.Repository
         Task<int> SalvarAsync();
 
         Task<List<Transacao>> ObterTransacoesMesAsync(int contaId, int mes, int ano);
-        Task<List<Transacao>> ObterTransacoesFiltradasAsync(int contaId, TipoMovimento? tipo, int? categoriaId, DateTime? inicio, DateTime? fim);
+        Task<(List<Transacao> Transacoes, int Total)> ObterTransacoesPaginadasAsync(int contaId, TipoMovimento? tipo, int? categoriaId, DateTime? inicio, DateTime? fim, decimal? valorMin, decimal? valorMax, IReadOnlyList<int> tags, string? search, OrdenacaoTransacao ordenacao, int page, int pageSize);
         Task<List<Recorrencia>> ObterRecorrenciasAtivasAsync(int contaId);
         Task<List<Assinatura>> ObterAssinaturasAtivasAsync(int contaId);
         Task<List<Recorrencia>> ObterRecorrenciasVencidasAsync(DateTime utcAgora);

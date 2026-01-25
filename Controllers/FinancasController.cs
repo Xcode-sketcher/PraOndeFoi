@@ -163,23 +163,11 @@ namespace PraOndeFoi.Controllers
         }
 
         [HttpGet("transacoes")]
-        public async Task<IActionResult> ObterTransacoes([FromQuery] int contaId, [FromQuery] TipoMovimento? tipo, [FromQuery] int? categoriaId, [FromQuery] string? inicio, [FromQuery] string? fim)
+        public async Task<IActionResult> ObterTransacoes([FromQuery] TransacaoQueryRequest request)
         {
             try
             {
-                DateTime? inicioUtc = null;
-                if (!string.IsNullOrEmpty(inicio) && DateTime.TryParse(inicio, out var dtInicio))
-                {
-                    inicioUtc = DateTime.SpecifyKind(dtInicio.Date, DateTimeKind.Utc);
-                }
-
-                DateTime? fimUtc = null;
-                if (!string.IsNullOrEmpty(fim) && DateTime.TryParse(fim, out var dtFim))
-                {
-                    fimUtc = DateTime.SpecifyKind(dtFim.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
-                }
-
-                var transacoes = await _financasService.ObterTransacoesAsync(contaId, tipo, categoriaId, inicioUtc, fimUtc);
+                var transacoes = await _financasService.ObterTransacoesAsync(request);
                 return Ok(transacoes);
             }
             catch (InvalidOperationException ex)
