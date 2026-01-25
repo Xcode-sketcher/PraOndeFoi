@@ -222,6 +222,11 @@ namespace PraOndeFoi.Repository
             _db.Tags.Add(tag);
         }
 
+        public void RemoverTag(Tag tag)
+        {
+            _db.Tags.Remove(tag);
+        }
+
         public void AdicionarTransacaoTag(TransacaoTag transacaoTag)
         {
             _db.TransacaoTags.Add(transacaoTag);

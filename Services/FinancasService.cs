@@ -500,6 +500,20 @@ namespace PraOndeFoi.Services
             return tag;
         }
 
+        public async Task RemoverTagAsync(int tagId)
+        {
+            var tag = await _repository.ObterTagAsync(tagId);
+            if (tag == null)
+            {
+                throw new InvalidOperationException("Tag não encontrada.");
+            }
+
+            await GarantirContaAsync(tag.ContaId);
+            _repository.RemoverTag(tag);
+            await _repository.SalvarAsync();
+            _cache.Remove($"tags:{tag.ContaId}");
+        }
+
         public async Task<IReadOnlyList<Tag>> ObterTagsAsync(int contaId)
         {
             await GarantirContaAsync(contaId);

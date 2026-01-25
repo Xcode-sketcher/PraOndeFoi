@@ -261,6 +261,20 @@ namespace PraOndeFoi.Controllers
             }
         }
 
+        [HttpDelete("tags/{tagId:int}")]
+        public async Task<IActionResult> RemoverTag(int tagId)
+        {
+            try
+            {
+                await _financasService.RemoverTagAsync(tagId);
+                return Ok(new { message = "Tag removida com sucesso." });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
         [HttpPost("transacoes/tags")]
         public async Task<IActionResult> VincularTag([FromBody] AdicionarTagTransacaoRequest request)
         {

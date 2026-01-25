@@ -29,6 +29,7 @@ namespace PraOndeFoi.Repository
         void AtualizarTransacao(Transacao transacao);
         void RemoverTransacao(Transacao transacao);
         void AdicionarTag(Tag tag);
+        void RemoverTag(Tag tag);
         void AdicionarTransacaoTag(TransacaoTag transacaoTag);
         void AdicionarAnexo(AnexoTransacao anexo);
         void AdicionarMeta(MetaFinanceira meta);

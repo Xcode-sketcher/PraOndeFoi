@@ -22,6 +22,7 @@ namespace PraOndeFoi.Services
         Task RemoverTransacaoAsync(int transacaoId);
         Task<IReadOnlyList<Categoria>> ObterCategoriasAsync();
         Task<Tag> CriarTagAsync(NovaTagRequest request);
+        Task RemoverTagAsync(int tagId);
         Task<IReadOnlyList<Tag>> ObterTagsAsync(int contaId);
         Task<TransacaoTag> VincularTagAsync(AdicionarTagTransacaoRequest request);
         Task<AnexoTransacao> AdicionarAnexoAsync(NovoAnexoTransacaoRequest request);
