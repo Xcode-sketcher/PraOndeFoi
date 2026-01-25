@@ -254,7 +254,7 @@ namespace PraOndeFoi.Services
             var fimUtc = ParseDateUtc(request.Fim, isFim: true);
 
             var page = Math.Max(1, request.Page);
-            var pageSize = Math.Min(10, Math.Max(1, request.PageSize));
+            var pageSize = Math.Min(50, Math.Max(1, request.PageSize));
 
             var resultado = await _repository.ObterTransacoesPaginadasAsync(
                 request.ContaId,

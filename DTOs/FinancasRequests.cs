@@ -100,7 +100,7 @@ namespace PraOndeFoi.DTOs
         public OrdenacaoTransacao Ordenacao { get; set; } = OrdenacaoTransacao.DataDesc;
         [Range(1, int.MaxValue)]
         public int Page { get; set; } = 1;
-        [Range(1, 10)]
+        [Range(1, 50)]
         public int PageSize { get; set; } = 10;
     }
 
