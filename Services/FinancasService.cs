@@ -1,6 +1,4 @@
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.ML;
-using Microsoft.ML.Data;
 using PraOndeFoi.DTOs;
 using PraOndeFoi.Models;
 using PraOndeFoi.Repository;
@@ -676,6 +674,18 @@ namespace PraOndeFoi.Services
             _contaCacheService.IncrementarVersao(meta.ContaId);
         }
 
+        public async Task<IReadOnlyList<Recorrencia>> ObterRecorrenciasAsync(int contaId)
+        {
+            await GarantirContaAsync(contaId);
+            return await _repository.ObterRecorrenciasAtivasAsync(contaId);
+        }
+
+        public async Task<IReadOnlyList<Assinatura>> ObterAssinaturasAsync(int contaId)
+        {
+            await GarantirContaAsync(contaId);
+            return await _repository.ObterAssinaturasAtivasAsync(contaId);
+        }
+
         public async Task<InsightsResponse> ObterInsightsAsync(InsightsQueryRequest request)
         {
             await GarantirContaAsync(request.ContaId);
@@ -745,11 +755,11 @@ namespace PraOndeFoi.Services
                 (decimal previsao, decimal confianca, string modelo) previsaoResultado;
                 try
                 {
-                    previsaoResultado = PreverProximoMes(meses);
+                    previsaoResultado = PreverProximoMesSimples(meses);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Erro ao executar PreverProximoMes: {Message}", ex.Message);
+                    _logger.LogError(ex, "Erro ao executar previsão: {Message}", ex.Message);
                     previsaoResultado = (meses.LastOrDefault()?.TotalSaidas ?? 0m, 0m, "fallback");
                 }
 
@@ -795,81 +805,48 @@ namespace PraOndeFoi.Services
             });
         }
 
-        private static (decimal previsao, decimal confianca, string modelo) PreverProximoMes(IReadOnlyList<ResumoGastoMensal> meses)
+        private static (decimal previsao, decimal confianca, string modelo) PreverProximoMesSimples(IReadOnlyList<ResumoGastoMensal> meses)
         {
-            if (meses.Count < 4)
+            if (meses.Count < 3)
             {
-                return (0m, 0m, "indisponivel");
+                return (0m, 0m, "dados-insuficientes");
             }
 
             var ultima = meses[^1];
-            var ultimasTres = meses.Skip(Math.Max(0, meses.Count - 3)).ToList();
-            var mediaTres = ultimasTres.Average(m => m.TotalSaidas);
 
-            var dados = new List<GastoMensalData>();
-            for (var i = 3; i < meses.Count; i++)
+            // Calcular média móvel ponderada dos últimos 3 meses (peso maior para mais recentes)
+            var ultimosTres = meses.Skip(Math.Max(0, meses.Count - 3)).ToList();
+
+            if (ultimosTres.Count >= 3)
             {
-                var anterior = meses[i - 1];
-                var anterior2 = meses[i - 2];
-                var anterior3 = meses[i - 3];
-                var media = (anterior.TotalSaidas + anterior2.TotalSaidas + anterior3.TotalSaidas) / 3m;
+                // Pesos: 0.5 para o mais recente, 0.3 para o segundo, 0.2 para o terceiro
+                var mediaPonderada = (ultimosTres[2].TotalSaidas * 0.5m) +
+                                     (ultimosTres[1].TotalSaidas * 0.3m) +
+                                     (ultimosTres[0].TotalSaidas * 0.2m);
 
-                dados.Add(new GastoMensalData
+                // Calcular tendência (crescimento ou decrescimento)
+                var tendencia = 0m;
+                if (ultimosTres.Count >= 2)
                 {
-                    MesIndex = i,
-                    Mes = meses[i].InicioMes.Month,
-                    TotalMesAnterior = (float)anterior.TotalSaidas,
-                    MediaTresMeses = (float)media,
-                    TotalTransacoesAnterior = anterior.QuantidadeSaidas,
-                    Label = (float)meses[i].TotalSaidas
-                });
+                    var diff1 = ultimosTres[2].TotalSaidas - ultimosTres[1].TotalSaidas;
+                    var diff2 = ultimosTres[1].TotalSaidas - ultimosTres[0].TotalSaidas;
+                    tendencia = (diff1 + diff2) / 2m;
+                }
+
+                var previsao = Math.Max(0m, mediaPonderada + tendencia);
+
+                // Calcular confiança baseado na estabilidade dos dados
+                var desvios = ultimosTres.Select(m => Math.Abs(m.TotalSaidas - mediaPonderada)).ToList();
+                var desvioMedio = desvios.Average();
+                var coeficienteVariacao = mediaPonderada > 0 ? desvioMedio / mediaPonderada : 1m;
+                var confianca = Math.Max(0.3m, Math.Min(0.95m, 1m - coeficienteVariacao));
+
+                return (previsao, confianca, "media-movel-ponderada");
             }
 
-            if (dados.Count < 4)
-            {
-                return (mediaTres, 0.2m, "baseline");
-            }
-
-            if (dados.Any(d => float.IsNaN(d.Label) || float.IsInfinity(d.Label)))
-            {
-                throw new InvalidOperationException("Dados inválidos para treinamento do modelo (NaN/Infinity detectado).");
-            }
-
-            var mlContext = new MLContext(seed: 42);
-            var dataView = mlContext.Data.LoadFromEnumerable(dados);
-            var split = mlContext.Data.TrainTestSplit(dataView, testFraction: 0.2);
-
-            var pipeline = mlContext.Transforms.Concatenate(
-                    "Features",
-                    nameof(GastoMensalData.MesIndex),
-                    nameof(GastoMensalData.Mes),
-                    nameof(GastoMensalData.TotalMesAnterior),
-                    nameof(GastoMensalData.MediaTresMeses),
-                    nameof(GastoMensalData.TotalTransacoesAnterior))
-                .Append(mlContext.Regression.Trainers.Sdca(
-                    labelColumnName: nameof(GastoMensalData.Label),
-                    featureColumnName: "Features"));
-
-            var model = pipeline.Fit(split.TrainSet);
-            var predictions = model.Transform(split.TestSet);
-            var metrics = mlContext.Regression.Evaluate(predictions, labelColumnName: nameof(GastoMensalData.Label));
-
-            var engine = mlContext.Model.CreatePredictionEngine<GastoMensalData, GastoMensalPrediction>(model);
-            var proximoMes = ultima.InicioMes.AddMonths(1);
-            var entrada = new GastoMensalData
-            {
-                MesIndex = meses.Count,
-                Mes = proximoMes.Month,
-                TotalMesAnterior = (float)ultima.TotalSaidas,
-                MediaTresMeses = (float)mediaTres,
-                TotalTransacoesAnterior = ultima.QuantidadeSaidas
-            };
-
-            var score = engine.Predict(entrada).Score;
-            var previsao = Math.Max(0m, (decimal)score);
-            var confianca = (decimal)Math.Clamp(metrics.RSquared, 0, 1);
-
-            return (previsao, confianca, "mlnet-sdca");
+            // Fallback: média simples
+            var mediaSimples = ultimosTres.Average(m => m.TotalSaidas);
+            return (mediaSimples, 0.5m, "media-simples");
         }
 
         private static IReadOnlyList<string> GerarSugestoes(decimal totalAtual, decimal totalAnterior, decimal variacao, decimal previsao, IReadOnlyList<InsightCategoriaResponse> topCategorias)
@@ -917,26 +894,6 @@ namespace PraOndeFoi.Services
             public int QuantidadeSaidas { get; set; }
         }
 
-        private sealed class GastoMensalData
-        {
-            [LoadColumn(0)]
-            public float MesIndex { get; set; }
-
-            [LoadColumn(1)]
-            public float Mes { get; set; }
-
-            [LoadColumn(2)]
-            public float TotalMesAnterior { get; set; }
-
-            [LoadColumn(3)]
-            public float MediaTresMeses { get; set; }
-
-            [LoadColumn(4)]
-            public float TotalTransacoesAnterior { get; set; }
-
-            [LoadColumn(5)]
-            public float Label { get; set; }
-        }
 
         private sealed class GastoMensalPrediction
         {

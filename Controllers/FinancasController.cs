@@ -80,6 +80,20 @@ namespace PraOndeFoi.Controllers
             }
         }
 
+        [HttpGet("recorrencias")]
+        public async Task<IActionResult> ObterRecorrencias([FromQuery] int contaId)
+        {
+            try
+            {
+                var recorrencias = await _financasService.ObterRecorrenciasAsync(contaId);
+                return Ok(recorrencias);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
         [HttpPost("assinaturas")]
         public async Task<IActionResult> CriarAssinatura([FromBody] NovaAssinaturaRequest request)
         {
@@ -87,6 +101,20 @@ namespace PraOndeFoi.Controllers
             {
                 var assinatura = await _financasService.CriarAssinaturaAsync(request);
                 return Ok(assinatura);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpGet("assinaturas")]
+        public async Task<IActionResult> ObterAssinaturas([FromQuery] int contaId)
+        {
+            try
+            {
+                var assinaturas = await _financasService.ObterAssinaturasAsync(contaId);
+                return Ok(assinaturas);
             }
             catch (InvalidOperationException ex)
             {

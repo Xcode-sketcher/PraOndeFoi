@@ -33,5 +33,7 @@ namespace PraOndeFoi.Services
         Task<MetaFinanceira> ContribuirMetaAsync(int metaId, ContribuirMetaRequest request);
         Task<decimal> ObterSaldoAtualAsync(int contaId);
         Task<InsightsResponse> ObterInsightsAsync(InsightsQueryRequest request);
+        Task<IReadOnlyList<Recorrencia>> ObterRecorrenciasAsync(int contaId);
+        Task<IReadOnlyList<Assinatura>> ObterAssinaturasAsync(int contaId);
     }
 }
