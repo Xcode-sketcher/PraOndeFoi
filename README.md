@@ -9,11 +9,12 @@ PraOndeFoi é uma API abrangente de gerenciamento financeiro projetada para ajud
 - **Sistema de Tags**: Organizar transações com tags personalizadas para melhor filtragem e análise.
 - **Transações Recorrentes**: Suporte para assinaturas e pagamentos recorrentes.
 - **Metas Financeiras**: Definir e acompanhar o progresso em direção a objetivos financeiros.
-- **Análises e Insights**: Gerar relatórios e insights usando aprendizado de máquina para padrões de gastos.
+- **Análises e Insights**: Gerar relatórios e insights usando previsões baseadas em médias móveis ponderadas.
 - **Suporte a Múltiplas Contas**: Gerenciar múltiplas contas com isolamento adequado.
 - **Autenticação**: Autenticação segura de usuários via Supabase.
 - **Anexos de Arquivos**: Anexar recibos e documentos às transações.
-- **Funcionalidade de Exportação**: Exportar dados para PDF usando QuestPDF.
+- **Funcionalidade de Exportação**: Exportar dados para PDF e CSV com formatação profissional.
+- **Importação de Dados**: Importar transações via arquivo CSV com validações robustas.
 
 ## Tecnologias
 
@@ -22,8 +23,8 @@ PraOndeFoi é uma API abrangente de gerenciamento financeiro projetada para ajud
 - **ORM**: Entity Framework Core
 - **Banco de Dados**: PostgreSQL
 - **Autenticação**: Supabase
-- **Aprendizado de Máquina**: ML.NET
 - **Geração de PDF**: QuestPDF
+- **Processamento CSV**: CsvHelper
 - **Tarefas em Segundo Plano**: Quartz.NET
 - **Cache**: Cache em memória com suporte a cache distribuído
 
@@ -50,7 +51,7 @@ PraOndeFoi é uma API abrangente de gerenciamento financeiro projetada para ajud
    ```json
    {
      "ConnectionStrings": {
-       "DefaultConnection": "Host=localhost;Database=praoindefoi;Username=seuusuario;Password=suasenha"
+       "DefaultConnection": "Host=localhost;Database=praondefoi;Username=seusuario;Password=suasenha"
      }
    }
    ```

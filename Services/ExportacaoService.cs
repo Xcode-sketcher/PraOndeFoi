@@ -1,10 +1,12 @@
 using System.Globalization;
 using System.Text;
 using CsvHelper;
+using CsvHelper.Configuration;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using PraOndeFoi.Repository;
+using PraOndeFoi.Models;
 
 namespace PraOndeFoi.Services
 {
@@ -25,21 +27,48 @@ namespace PraOndeFoi.Services
             }
 
             var transacoes = await _repository.ObterTransacoesParaExportacaoAsync(contaId, inicio, fim);
-            using var writer = new StringWriter();
-            using var csv = new CsvWriter(writer, CultureInfo.InvariantCulture);
+
+            var builder = new StringBuilder();
+
+            // Metadados do relatório
+            builder.AppendLine($"# Relatório de Transações");
+            builder.AppendLine($"# Conta ID: {contaId}");
+            builder.AppendLine($"# Período: {inicio?.ToString("dd/MM/yyyy") ?? "Início"} até {fim?.ToString("dd/MM/yyyy") ?? "Fim"}");
+            builder.AppendLine($"# Gerado em: {DateTime.UtcNow:dd/MM/yyyy HH:mm:ss} UTC");
+            builder.AppendLine($"# Total de transações: {transacoes.Count}");
+            builder.AppendLine();
+
+            using var writer = new StringWriter(builder);
+            var config = new CsvConfiguration(CultureInfo.GetCultureInfo("pt-BR"))
+            {
+                Delimiter = ";",
+                HasHeaderRecord = true
+            };
+
+            using var csv = new CsvWriter(writer, config);
 
             var rows = transacoes.Select(t => new ExportacaoTransacaoRow
             {
                 DataTransacao = t.DataTransacao,
-                Tipo = t.Tipo.ToString(),
+                Tipo = t.Tipo == TipoMovimento.Entrada ? "Entrada" : "Saída",
                 Valor = t.Valor,
                 Moeda = t.Moeda,
                 CategoriaId = t.CategoriaId,
-                Categoria = t.Categoria?.Nome ?? string.Empty,
+                Categoria = t.Categoria?.Nome ?? "Sem categoria",
                 Descricao = t.Descricao
-            });
+            }).ToList();
 
             csv.WriteRecords(rows);
+
+            // Adicionar totais ao final
+            writer.WriteLine();
+            writer.WriteLine("# Resumo");
+            var totalEntradas = transacoes.Where(t => t.Tipo == TipoMovimento.Entrada).Sum(t => t.Valor);
+            var totalSaidas = transacoes.Where(t => t.Tipo == TipoMovimento.Saida).Sum(t => t.Valor);
+            writer.WriteLine($"# Total Entradas: {totalEntradas:N2}");
+            writer.WriteLine($"# Total Saídas: {totalSaidas:N2}");
+            writer.WriteLine($"# Saldo: {totalEntradas - totalSaidas:N2}");
+
             return Encoding.UTF8.GetBytes(writer.ToString());
         }
 
@@ -51,49 +80,132 @@ namespace PraOndeFoi.Services
             }
 
             var transacoes = await _repository.ObterTransacoesParaExportacaoAsync(contaId, inicio, fim);
+
+            // Calcular totais
+            var totalEntradas = transacoes.Where(t => t.Tipo == TipoMovimento.Entrada).Sum(t => t.Valor);
+            var totalSaidas = transacoes.Where(t => t.Tipo == TipoMovimento.Saida).Sum(t => t.Valor);
+            var saldo = totalEntradas - totalSaidas;
+
             var document = Document.Create(container =>
             {
                 container.Page(page =>
                 {
-                    page.Margin(30);
-                    page.Header().Text("Relatório de Transações").FontSize(16).SemiBold();
+                    page.Size(PageSizes.A4);
+                    page.Margin(40);
+                    page.PageColor(Colors.White);
 
-                    page.Content().Table(table =>
+                    // Cabeçalho
+                    page.Header().Row(row =>
                     {
-                        table.ColumnsDefinition(columns =>
+                        row.RelativeItem().Column(column =>
                         {
-                            columns.ConstantColumn(75);
-                            columns.ConstantColumn(55);
-                            columns.ConstantColumn(70);
-                            columns.ConstantColumn(55);
-                            columns.RelativeColumn(2);
-                            columns.RelativeColumn(3);
+                            column.Item().Text("Relatório de Transações")
+                                .FontSize(20)
+                                .SemiBold()
+                                .FontColor(Colors.Blue.Darken3);
+
+                            column.Item().Text($"Conta ID: {contaId}")
+                                .FontSize(10)
+                                .FontColor(Colors.Grey.Darken1);
+
+                            column.Item().Text($"Período: {inicio?.ToString("dd/MM/yyyy") ?? "Início"} até {fim?.ToString("dd/MM/yyyy") ?? "Fim"}")
+                                .FontSize(10)
+                                .FontColor(Colors.Grey.Darken1);
                         });
 
-                        table.Header(header =>
-                        {
-                            header.Cell().Text("Data").SemiBold();
-                            header.Cell().Text("Tipo").SemiBold();
-                            header.Cell().Text("Valor").SemiBold();
-                            header.Cell().Text("Moeda").SemiBold();
-                            header.Cell().Text("Categoria").SemiBold();
-                            header.Cell().Text("Descrição").SemiBold();
-                        });
-
-                        foreach (var transacao in transacoes)
-                        {
-                            table.Cell().Text(transacao.DataTransacao.ToString("yyyy-MM-dd"));
-                            table.Cell().Text(transacao.Tipo.ToString());
-                            table.Cell().Text(transacao.Valor.ToString("F2", CultureInfo.InvariantCulture));
-                            table.Cell().Text(transacao.Moeda);
-                            table.Cell().Text(transacao.Categoria?.Nome ?? string.Empty);
-                            table.Cell().Text(transacao.Descricao);
-                        }
+                        row.ConstantItem(100).AlignRight().Text($"Gerado em:\n{DateTime.UtcNow:dd/MM/yyyy HH:mm}")
+                            .FontSize(8)
+                            .FontColor(Colors.Grey.Medium);
                     });
 
+                    // Conteúdo
+                    page.Content().PaddingVertical(10).Column(column =>
+                    {
+                        // Resumo em destaque
+                        column.Item().Background(Colors.Blue.Lighten4).Padding(15).Column(resumo =>
+                        {
+                            resumo.Item().Text("Resumo Financeiro").FontSize(14).SemiBold().FontColor(Colors.Blue.Darken3);
+                            resumo.Item().PaddingTop(5).Row(row =>
+                            {
+                                row.RelativeItem().Text($"Total Entradas: R$ {totalEntradas:N2}").FontSize(11).FontColor(Colors.Green.Darken2);
+                                row.RelativeItem().Text($"Total Saídas: R$ {totalSaidas:N2}").FontSize(11).FontColor(Colors.Red.Darken2);
+                                row.RelativeItem().Text($"Saldo: R$ {saldo:N2}").FontSize(11).SemiBold()
+                                    .FontColor(saldo >= 0 ? Colors.Green.Darken3 : Colors.Red.Darken3);
+                            });
+                        });
+
+                        column.Item().PaddingTop(15).Text($"Total de transações: {transacoes.Count}")
+                            .FontSize(10).FontColor(Colors.Grey.Darken1);
+
+                        // Tabela de transações
+                        column.Item().PaddingTop(10).Table(table =>
+                        {
+                            table.ColumnsDefinition(columns =>
+                            {
+                                columns.ConstantColumn(80);  // Data
+                                columns.ConstantColumn(60);  // Tipo
+                                columns.ConstantColumn(80);  // Valor
+                                columns.ConstantColumn(50);  // Moeda
+                                columns.RelativeColumn(2);   // Categoria
+                                columns.RelativeColumn(3);   // Descrição
+                            });
+
+                            // Cabeçalho da tabela
+                            table.Header(header =>
+                            {
+                                header.Cell().Background(Colors.Blue.Darken2).Padding(5)
+                                    .Text("Data").FontColor(Colors.White).FontSize(10).SemiBold();
+                                header.Cell().Background(Colors.Blue.Darken2).Padding(5)
+                                    .Text("Tipo").FontColor(Colors.White).FontSize(10).SemiBold();
+                                header.Cell().Background(Colors.Blue.Darken2).Padding(5)
+                                    .Text("Valor").FontColor(Colors.White).FontSize(10).SemiBold();
+                                header.Cell().Background(Colors.Blue.Darken2).Padding(5)
+                                    .Text("Moeda").FontColor(Colors.White).FontSize(10).SemiBold();
+                                header.Cell().Background(Colors.Blue.Darken2).Padding(5)
+                                    .Text("Categoria").FontColor(Colors.White).FontSize(10).SemiBold();
+                                header.Cell().Background(Colors.Blue.Darken2).Padding(5)
+                                    .Text("Descrição").FontColor(Colors.White).FontSize(10).SemiBold();
+                            });
+
+                            // Linhas de transações
+                            var index = 0;
+                            foreach (var transacao in transacoes)
+                            {
+                                var isEven = index % 2 == 0;
+                                var bgColor = isEven ? Colors.White : Colors.Grey.Lighten3;
+                                var tipoColor = transacao.Tipo == TipoMovimento.Entrada
+                                    ? Colors.Green.Darken1
+                                    : Colors.Red.Darken1;
+
+                                table.Cell().Background(bgColor).Padding(5)
+                                    .Text(transacao.DataTransacao.ToString("dd/MM/yyyy")).FontSize(9);
+                                table.Cell().Background(bgColor).Padding(5)
+                                    .Text(transacao.Tipo == TipoMovimento.Entrada ? "Entrada" : "Saída")
+                                    .FontSize(9).FontColor(tipoColor).SemiBold();
+                                table.Cell().Background(bgColor).Padding(5)
+                                    .Text($"{transacao.Valor:N2}").FontSize(9);
+                                table.Cell().Background(bgColor).Padding(5)
+                                    .Text(transacao.Moeda).FontSize(9);
+                                table.Cell().Background(bgColor).Padding(5)
+                                    .Text(transacao.Categoria?.Nome ?? "Sem categoria").FontSize(9);
+                                table.Cell().Background(bgColor).Padding(5)
+                                    .Text(transacao.Descricao).FontSize(9);
+
+                                index++;
+                            }
+                        });
+                    });
+
+                    // Rodapé
                     page.Footer()
-                        .AlignRight()
-                        .Text($"Gerado em: {DateTime.UtcNow:yyyy-MM-dd HH:mm}")
+                        .AlignCenter()
+                        .Text(text =>
+                        {
+                            text.Span("PraOndeFoi - Sistema de Gestão Financeira | ");
+                            text.CurrentPageNumber();
+                            text.Span(" / ");
+                            text.TotalPages();
+                        })
                         .FontSize(8)
                         .FontColor(Colors.Grey.Medium);
                 });
