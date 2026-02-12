@@ -56,9 +56,12 @@ namespace PraOndeFoi.Repository
 
         public Task<List<Transacao>> ObterTransacoesMesAsync(int contaId, int mes, int ano)
         {
+            var inicio = new DateTime(ano, mes, 1, 0, 0, 0, DateTimeKind.Utc);
+            var fim = inicio.AddMonths(1).AddSeconds(-1);
+
             return _db.Transacoes
                 .AsNoTracking()
-                .Where(t => t.ContaId == contaId && t.DataTransacao.Month == mes && t.DataTransacao.Year == ano)
+                .Where(t => t.ContaId == contaId && t.DataTransacao >= inicio && t.DataTransacao <= fim)
                 .ToListAsync();
         }
 
