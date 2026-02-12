@@ -197,17 +197,13 @@ namespace PraOndeFoi.Services
                     });
 
                     // Rodapé
-                    page.Footer()
-                        .AlignCenter()
-                        .Text(text =>
+                    page.Footer().AlignCenter().Row(row =>
+                    {
+                        row.RelativeItem().Text(text =>
                         {
-                            text.Span("PraOndeFoi - Sistema de Gestão Financeira | ");
-                            text.CurrentPageNumber();
-                            text.Span(" / ");
-                            text.TotalPages();
-                        })
-                        .FontSize(8)
-                        .FontColor(Colors.Grey.Medium);
+                            text.Span("PraOndeFoi - Sistema de Gestão Financeira").FontSize(8).FontColor(Colors.Grey.Medium);
+                        });
+                    });
                 });
             });
 

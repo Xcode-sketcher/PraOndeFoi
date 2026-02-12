@@ -895,12 +895,6 @@ namespace PraOndeFoi.Services
         }
 
 
-        private sealed class GastoMensalPrediction
-        {
-            [ColumnName("Score")]
-            public float Score { get; set; }
-        }
-
         private async Task GarantirContaAsync(int contaId)
         {
             var existe = await _repository.ContaExisteAsync(contaId);
