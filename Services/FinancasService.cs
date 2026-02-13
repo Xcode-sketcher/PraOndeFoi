@@ -680,10 +680,38 @@ namespace PraOndeFoi.Services
             return await _repository.ObterRecorrenciasAtivasAsync(contaId);
         }
 
+        public async Task RemoverRecorrenciaAsync(int recorrenciaId)
+        {
+            var recorrencia = await _repository.ObterRecorrenciaPorIdAsync(recorrenciaId);
+            if (recorrencia == null)
+            {
+                throw new InvalidOperationException("Recorrência não encontrada.");
+            }
+
+            await GarantirContaAsync(recorrencia.ContaId);
+            _repository.RemoverRecorrencia(recorrencia);
+            await _repository.SalvarAsync();
+            _contaCacheService.IncrementarVersao(recorrencia.ContaId);
+        }
+
         public async Task<IReadOnlyList<Assinatura>> ObterAssinaturasAsync(int contaId)
         {
             await GarantirContaAsync(contaId);
             return await _repository.ObterAssinaturasAtivasAsync(contaId);
+        }
+
+        public async Task RemoverAssinaturaAsync(int assinaturaId)
+        {
+            var assinatura = await _repository.ObterAssinaturaPorIdAsync(assinaturaId);
+            if (assinatura == null)
+            {
+                throw new InvalidOperationException("Assinatura não encontrada.");
+            }
+
+            await GarantirContaAsync(assinatura.ContaId);
+            _repository.RemoverAssinatura(assinatura);
+            await _repository.SalvarAsync();
+            _contaCacheService.IncrementarVersao(assinatura.ContaId);
         }
 
         public async Task<InsightsResponse> ObterInsightsAsync(InsightsQueryRequest request)

@@ -17,7 +17,11 @@ namespace PraOndeFoi.Repository
         Task<List<Transacao>> ObterTransacoesMesAsync(int contaId, int mes, int ano);
         Task<(List<Transacao> Transacoes, int Total)> ObterTransacoesPaginadasAsync(int contaId, TipoMovimento? tipo, int? categoriaId, DateTime? inicio, DateTime? fim, decimal? valorMin, decimal? valorMax, IReadOnlyList<int> tags, string? search, OrdenacaoTransacao ordenacao, int page, int pageSize);
         Task<List<Recorrencia>> ObterRecorrenciasAtivasAsync(int contaId);
+        Task<Recorrencia?> ObterRecorrenciaPorIdAsync(int recorrenciaId);
+        void RemoverRecorrencia(Recorrencia recorrencia);
         Task<List<Assinatura>> ObterAssinaturasAtivasAsync(int contaId);
+        Task<Assinatura?> ObterAssinaturaPorIdAsync(int assinaturaId);
+        void RemoverAssinatura(Assinatura assinatura);
         Task<List<Recorrencia>> ObterRecorrenciasVencidasAsync(DateTime utcAgora);
         Task<List<Assinatura>> ObterAssinaturasVencidasAsync(DateTime utcAgora);
         Task<List<OrcamentoMensal>> ObterOrcamentosMesAsync(int contaId, int mes, int ano);

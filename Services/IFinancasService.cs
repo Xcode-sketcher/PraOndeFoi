@@ -34,6 +34,8 @@ namespace PraOndeFoi.Services
         Task<decimal> ObterSaldoAtualAsync(int contaId);
         Task<InsightsResponse> ObterInsightsAsync(InsightsQueryRequest request);
         Task<IReadOnlyList<Recorrencia>> ObterRecorrenciasAsync(int contaId);
+        Task RemoverRecorrenciaAsync(int recorrenciaId);
         Task<IReadOnlyList<Assinatura>> ObterAssinaturasAsync(int contaId);
+        Task RemoverAssinaturaAsync(int assinaturaId);
     }
 }

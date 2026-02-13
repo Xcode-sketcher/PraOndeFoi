@@ -143,12 +143,32 @@ namespace PraOndeFoi.Repository
                 .ToListAsync();
         }
 
+        public Task<Recorrencia?> ObterRecorrenciaPorIdAsync(int recorrenciaId)
+        {
+            return _db.Recorrencias.FirstOrDefaultAsync(r => r.Id == recorrenciaId);
+        }
+
+        public void RemoverRecorrencia(Recorrencia recorrencia)
+        {
+            _db.Recorrencias.Remove(recorrencia);
+        }
+
         public Task<List<Assinatura>> ObterAssinaturasAtivasAsync(int contaId)
         {
             return _db.Assinaturas
                 .AsNoTracking()
                 .Where(a => a.ContaId == contaId && a.Ativa)
                 .ToListAsync();
+        }
+
+        public Task<Assinatura?> ObterAssinaturaPorIdAsync(int assinaturaId)
+        {
+            return _db.Assinaturas.FirstOrDefaultAsync(a => a.Id == assinaturaId);
+        }
+
+        public void RemoverAssinatura(Assinatura assinatura)
+        {
+            _db.Assinaturas.Remove(assinatura);
         }
 
         public Task<List<Recorrencia>> ObterRecorrenciasVencidasAsync(DateTime utcAgora)
@@ -301,15 +321,19 @@ namespace PraOndeFoi.Repository
 
             if (inicio.HasValue)
             {
-                query = query.Where(t => t.DataTransacao >= inicio.Value);
+                // Garantir UTC para comparação consistente
+                var inicioUtc = DateTime.SpecifyKind(inicio.Value.Date, DateTimeKind.Utc);
+                query = query.Where(t => t.DataTransacao >= inicioUtc);
             }
 
             if (fim.HasValue)
             {
-                query = query.Where(t => t.DataTransacao <= fim.Value);
+                // Garantir UTC e incluir o dia inteiro (23:59:59)
+                var fimUtc = DateTime.SpecifyKind(fim.Value.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
+                query = query.Where(t => t.DataTransacao <= fimUtc);
             }
 
-            return query.OrderBy(t => t.DataTransacao).ToListAsync();
+            return query.OrderByDescending(t => t.DataTransacao).ToListAsync();
         }
 
         public Task<bool> TransacaoTagExisteAsync(int transacaoId, int tagId)

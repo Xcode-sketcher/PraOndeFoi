@@ -122,6 +122,34 @@ namespace PraOndeFoi.Controllers
             }
         }
 
+        [HttpDelete("recorrencias/{recorrenciaId:int}")]
+        public async Task<IActionResult> RemoverRecorrencia(int recorrenciaId)
+        {
+            try
+            {
+                await _financasService.RemoverRecorrenciaAsync(recorrenciaId);
+                return Ok(new { message = "Recorrência removida com sucesso." });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpDelete("assinaturas/{assinaturaId:int}")]
+        public async Task<IActionResult> RemoverAssinatura(int assinaturaId)
+        {
+            try
+            {
+                await _financasService.RemoverAssinaturaAsync(assinaturaId);
+                return Ok(new { message = "Assinatura removida com sucesso." });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
         [HttpPost("orcamentos")]
         public async Task<IActionResult> CriarOrcamento([FromBody] NovoOrcamentoRequest request)
         {
