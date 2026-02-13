@@ -321,15 +321,19 @@ namespace PraOndeFoi.Repository
 
             if (inicio.HasValue)
             {
-                // Garantir UTC para comparação consistente
-                var inicioUtc = DateTime.SpecifyKind(inicio.Value.Date, DateTimeKind.Utc);
+                // Converter para UTC se necessário
+                var inicioUtc = inicio.Value.Kind == DateTimeKind.Utc
+                    ? inicio.Value
+                    : DateTime.SpecifyKind(inicio.Value.Date, DateTimeKind.Utc);
                 query = query.Where(t => t.DataTransacao >= inicioUtc);
             }
 
             if (fim.HasValue)
             {
-                // Garantir UTC e incluir o dia inteiro (23:59:59)
-                var fimUtc = DateTime.SpecifyKind(fim.Value.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
+                // Converter para UTC e incluir o dia inteiro (23:59:59.999)
+                var fimUtc = fim.Value.Kind == DateTimeKind.Utc
+                    ? fim.Value.Date.AddDays(1).AddMilliseconds(-1)
+                    : DateTime.SpecifyKind(fim.Value.Date.AddDays(1).AddMilliseconds(-1), DateTimeKind.Utc);
                 query = query.Where(t => t.DataTransacao <= fimUtc);
             }
 
