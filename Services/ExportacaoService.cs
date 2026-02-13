@@ -99,8 +99,8 @@ namespace PraOndeFoi.Services
                 throw new InvalidOperationException($"Nenhuma transação encontrada para exportar{periodoMsg}.");
             }
 
-            // Limitar para evitar timeout (máximo 200 transações no PDF para Railway)
-            const int maxTransacoes = 200;
+            // Limitar para evitar timeout (máximo 100 transações no PDF para Railway quando há filtros)
+            const int maxTransacoes = 100;
             var transacoes = todasTransacoes.Count > maxTransacoes
                 ? todasTransacoes.Take(maxTransacoes).ToList()
                 : todasTransacoes;

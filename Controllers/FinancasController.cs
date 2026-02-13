@@ -474,11 +474,34 @@ namespace PraOndeFoi.Controllers
         }
 
         [HttpGet("exportacao/csv")]
-        public async Task<IActionResult> ExportarCsv([FromQuery] int contaId, [FromQuery] DateTime? inicio, [FromQuery] DateTime? fim)
+        public async Task<IActionResult> ExportarCsv(
+            [FromQuery] int contaId,
+            [FromQuery] string? inicio,
+            [FromQuery] string? fim)
         {
             try
             {
-                var bytes = await _exportacaoService.ExportarTransacoesCsvAsync(contaId, inicio, fim);
+                // Parse das datas manualmente
+                DateTime? inicioDate = null;
+                DateTime? fimDate = null;
+
+                if (!string.IsNullOrWhiteSpace(inicio))
+                {
+                    if (DateTime.TryParse(inicio, out var parsedInicio))
+                    {
+                        inicioDate = DateTime.SpecifyKind(parsedInicio.Date, DateTimeKind.Utc);
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(fim))
+                {
+                    if (DateTime.TryParse(fim, out var parsedFim))
+                    {
+                        fimDate = DateTime.SpecifyKind(parsedFim.Date, DateTimeKind.Utc);
+                    }
+                }
+
+                var bytes = await _exportacaoService.ExportarTransacoesCsvAsync(contaId, inicioDate, fimDate);
                 var nomeArquivo = $"transacoes_{contaId}_{DateTime.UtcNow:yyyyMMddHHmmss}.csv";
                 return File(bytes, "text/csv", nomeArquivo);
             }
@@ -489,11 +512,34 @@ namespace PraOndeFoi.Controllers
         }
 
         [HttpGet("exportacao/pdf")]
-        public async Task<IActionResult> ExportarPdf([FromQuery] int contaId, [FromQuery] DateTime? inicio, [FromQuery] DateTime? fim)
+        public async Task<IActionResult> ExportarPdf(
+            [FromQuery] int contaId,
+            [FromQuery] string? inicio,
+            [FromQuery] string? fim)
         {
             try
             {
-                var bytes = await _exportacaoService.ExportarTransacoesPdfAsync(contaId, inicio, fim);
+                // Parse das datas manualmente
+                DateTime? inicioDate = null;
+                DateTime? fimDate = null;
+
+                if (!string.IsNullOrWhiteSpace(inicio))
+                {
+                    if (DateTime.TryParse(inicio, out var parsedInicio))
+                    {
+                        inicioDate = DateTime.SpecifyKind(parsedInicio.Date, DateTimeKind.Utc);
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(fim))
+                {
+                    if (DateTime.TryParse(fim, out var parsedFim))
+                    {
+                        fimDate = DateTime.SpecifyKind(parsedFim.Date, DateTimeKind.Utc);
+                    }
+                }
+
+                var bytes = await _exportacaoService.ExportarTransacoesPdfAsync(contaId, inicioDate, fimDate);
                 var nomeArquivo = $"transacoes_{contaId}_{DateTime.UtcNow:yyyyMMddHHmmss}.pdf";
                 return File(bytes, "application/pdf", nomeArquivo);
             }
@@ -504,7 +550,11 @@ namespace PraOndeFoi.Controllers
         }
 
         [HttpGet("exportar")]
-        public async Task<IActionResult> Exportar([FromQuery] int contaId, [FromQuery] string formato, [FromQuery] DateTime? inicio, [FromQuery] DateTime? fim)
+        public async Task<IActionResult> Exportar(
+            [FromQuery] int contaId,
+            [FromQuery] string formato,
+            [FromQuery] string? inicio,
+            [FromQuery] string? fim)
         {
             if (string.IsNullOrWhiteSpace(formato))
             {
@@ -513,16 +563,51 @@ namespace PraOndeFoi.Controllers
 
             try
             {
+                _logger.LogInformation("Exportar chamado - ContaId: {ContaId}, Formato: {Formato}, InicioStr: {Inicio}, FimStr: {Fim}",
+                    contaId, formato, inicio, fim);
+
+                // Parse das datas manualmente para evitar problemas de binding
+                DateTime? inicioDate = null;
+                DateTime? fimDate = null;
+
+                if (!string.IsNullOrWhiteSpace(inicio))
+                {
+                    if (DateTime.TryParse(inicio, out var parsedInicio))
+                    {
+                        inicioDate = DateTime.SpecifyKind(parsedInicio.Date, DateTimeKind.Utc);
+                        _logger.LogInformation("Data inicio parseada: {InicioDate}", inicioDate);
+                    }
+                    else
+                    {
+                        return BadRequest(new { error = $"Data de início inválida: {inicio}" });
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(fim))
+                {
+                    if (DateTime.TryParse(fim, out var parsedFim))
+                    {
+                        fimDate = DateTime.SpecifyKind(parsedFim.Date, DateTimeKind.Utc);
+                        _logger.LogInformation("Data fim parseada: {FimDate}", fimDate);
+                    }
+                    else
+                    {
+                        return BadRequest(new { error = $"Data de fim inválida: {fim}" });
+                    }
+                }
+
                 var formatoNormalizado = formato.Trim().ToLowerInvariant();
 
                 switch (formatoNormalizado)
                 {
                     case "csv":
-                        var dadosCsv = await _exportacaoService.ExportarTransacoesCsvAsync(contaId, inicio, fim);
+                        var dadosCsv = await _exportacaoService.ExportarTransacoesCsvAsync(contaId, inicioDate, fimDate);
                         return File(dadosCsv, "text/csv", $"praondefoi_transacoes_{DateTime.Now:yyyyMMdd}.csv");
 
                     case "pdf":
-                        var dadosPdf = await _exportacaoService.ExportarTransacoesPdfAsync(contaId, inicio, fim);
+                        _logger.LogInformation("Iniciando geração de PDF...");
+                        var dadosPdf = await _exportacaoService.ExportarTransacoesPdfAsync(contaId, inicioDate, fimDate);
+                        _logger.LogInformation("PDF gerado com sucesso, tamanho: {Size} bytes", dadosPdf.Length);
                         return File(dadosPdf, "application/pdf", $"praondefoi_relatorio_{DateTime.Now:yyyyMMdd}.pdf");
 
                     default:
@@ -531,7 +616,13 @@ namespace PraOndeFoi.Controllers
             }
             catch (InvalidOperationException ex)
             {
+                _logger.LogError(ex, "InvalidOperationException ao exportar");
                 return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro inesperado ao exportar");
+                return StatusCode(500, new { error = "Erro ao gerar exportação." });
             }
         }
 
