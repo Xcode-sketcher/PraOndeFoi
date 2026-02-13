@@ -483,13 +483,28 @@ namespace PraOndeFoi.Controllers
                 return BadRequest(new { error = "Formato é obrigatório (csv ou pdf)." });
             }
 
-            var formatoNormalizado = formato.Trim().ToLowerInvariant();
-            return formatoNormalizado switch
+            try
             {
-                "csv" => await ExportarCsv(contaId, inicio, fim),
-                "pdf" => await ExportarPdf(contaId, inicio, fim),
-                _ => BadRequest(new { error = "Formato inválido. Use csv ou pdf." })
-            };
+                var formatoNormalizado = formato.Trim().ToLowerInvariant();
+
+                switch (formatoNormalizado)
+                {
+                    case "csv":
+                        var dadosCsv = await _exportacaoService.ExportarTransacoesCsvAsync(contaId, inicio, fim);
+                        return File(dadosCsv, "text/csv", $"praondefoi_transacoes_{DateTime.Now:yyyyMMdd}.csv");
+
+                    case "pdf":
+                        var dadosPdf = await _exportacaoService.ExportarTransacoesPdfAsync(contaId, inicio, fim);
+                        return File(dadosPdf, "application/pdf", $"praondefoi_relatorio_{DateTime.Now:yyyyMMdd}.pdf");
+
+                    default:
+                        return BadRequest(new { error = "Formato inválido. Use csv ou pdf." });
+                }
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
 
         [HttpPost("importacao/csv")]
