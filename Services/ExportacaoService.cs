@@ -79,11 +79,29 @@ namespace PraOndeFoi.Services
                 throw new InvalidOperationException("Conta não encontrada.");
             }
 
-            var transacoes = await _repository.ObterTransacoesParaExportacaoAsync(contaId, inicio, fim);
+            var todasTransacoes = await _repository.ObterTransacoesParaExportacaoAsync(contaId, inicio, fim);
 
-            // Calcular totais
-            var totalEntradas = transacoes.Where(t => t.Tipo == TipoMovimento.Entrada).Sum(t => t.Valor);
-            var totalSaidas = transacoes.Where(t => t.Tipo == TipoMovimento.Saida).Sum(t => t.Valor);
+            // Validar se há transações
+            if (todasTransacoes == null || todasTransacoes.Count == 0)
+            {
+                var periodoMsg = inicio.HasValue || fim.HasValue
+                    ? $" no período de {inicio?.ToString("dd/MM/yyyy") ?? "início"} até {fim?.ToString("dd/MM/yyyy") ?? "fim"}"
+                    : "";
+                throw new InvalidOperationException($"Nenhuma transação encontrada para exportar{periodoMsg}.");
+            }
+
+            // Limitar para evitar timeout (máximo 1000 transações no PDF)
+            const int maxTransacoes = 1000;
+            var transacoes = todasTransacoes.Count > maxTransacoes
+                ? todasTransacoes.Take(maxTransacoes).ToList()
+                : todasTransacoes;
+
+            var avisoLimite = todasTransacoes.Count > maxTransacoes;
+            var totalOmitido = todasTransacoes.Count - maxTransacoes;
+
+            // Calcular totais (de TODAS as transações, não apenas as exibidas)
+            var totalEntradas = todasTransacoes.Where(t => t.Tipo == TipoMovimento.Entrada).Sum(t => t.Valor);
+            var totalSaidas = todasTransacoes.Where(t => t.Tipo == TipoMovimento.Saida).Sum(t => t.Valor);
             var saldo = totalEntradas - totalSaidas;
 
             var document = Document.Create(container =>
@@ -134,8 +152,17 @@ namespace PraOndeFoi.Services
                             });
                         });
 
-                        column.Item().PaddingTop(15).Text($"Total de transações: {transacoes.Count}")
-                            .FontSize(10).FontColor(Colors.Grey.Darken1);
+                        column.Item().PaddingTop(15).Column(infoColumn =>
+                        {
+                            infoColumn.Item().Text($"Total de transações encontradas: {todasTransacoes.Count}")
+                                .FontSize(10).FontColor(Colors.Grey.Darken1);
+
+                            if (avisoLimite)
+                            {
+                                infoColumn.Item().PaddingTop(3).Text($"⚠ Exibindo apenas as {maxTransacoes} transações mais recentes. {totalOmitido} transações foram omitidas da visualização, mas os totais consideram todas as transações.")
+                                    .FontSize(9).FontColor(Colors.Orange.Darken2).Italic();
+                            }
+                        });
 
                         // Tabela de transações
                         column.Item().PaddingTop(10).Table(table =>
