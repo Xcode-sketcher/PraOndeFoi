@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Diagnostics;
 using CsvHelper;
 using CsvHelper.Configuration;
 using QuestPDF.Fluent;
@@ -7,16 +8,19 @@ using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using PraOndeFoi.Repository;
 using PraOndeFoi.Models;
+using Microsoft.Extensions.Logging;
 
 namespace PraOndeFoi.Services
 {
     public class ExportacaoService : IExportacaoService
     {
         private readonly IFinancasRepository _repository;
+        private readonly ILogger<ExportacaoService> _logger;
 
-        public ExportacaoService(IFinancasRepository repository)
+        public ExportacaoService(IFinancasRepository repository, ILogger<ExportacaoService> logger)
         {
             _repository = repository;
+            _logger = logger;
         }
 
         public async Task<byte[]> ExportarTransacoesCsvAsync(int contaId, DateTime? inicio, DateTime? fim)
@@ -74,12 +78,17 @@ namespace PraOndeFoi.Services
 
         public async Task<byte[]> ExportarTransacoesPdfAsync(int contaId, DateTime? inicio, DateTime? fim)
         {
+            var sw = Stopwatch.StartNew();
+            _logger.LogInformation("PDF Export iniciado - ContaId: {ContaId}, Inicio: {Inicio}, Fim: {Fim}", contaId, inicio, fim);
+
             if (!await _repository.ContaExisteAsync(contaId))
             {
                 throw new InvalidOperationException("Conta não encontrada.");
             }
+            _logger.LogInformation("Verificação conta: {Ms}ms", sw.ElapsedMilliseconds);
 
             var todasTransacoes = await _repository.ObterTransacoesParaExportacaoAsync(contaId, inicio, fim);
+            _logger.LogInformation("Query transações: {Ms}ms, Total: {Count}", sw.ElapsedMilliseconds, todasTransacoes?.Count ?? 0);
 
             // Validar se há transações
             if (todasTransacoes == null || todasTransacoes.Count == 0)
@@ -90,8 +99,8 @@ namespace PraOndeFoi.Services
                 throw new InvalidOperationException($"Nenhuma transação encontrada para exportar{periodoMsg}.");
             }
 
-            // Limitar para evitar timeout (máximo 1000 transações no PDF)
-            const int maxTransacoes = 1000;
+            // Limitar para evitar timeout (máximo 200 transações no PDF para Railway)
+            const int maxTransacoes = 200;
             var transacoes = todasTransacoes.Count > maxTransacoes
                 ? todasTransacoes.Take(maxTransacoes).ToList()
                 : todasTransacoes;
@@ -103,6 +112,7 @@ namespace PraOndeFoi.Services
             var totalEntradas = todasTransacoes.Where(t => t.Tipo == TipoMovimento.Entrada).Sum(t => t.Valor);
             var totalSaidas = todasTransacoes.Where(t => t.Tipo == TipoMovimento.Saida).Sum(t => t.Valor);
             var saldo = totalEntradas - totalSaidas;
+            _logger.LogInformation("Cálculos: {Ms}ms", sw.ElapsedMilliseconds);
 
             var document = Document.Create(container =>
             {
@@ -234,7 +244,10 @@ namespace PraOndeFoi.Services
                 });
             });
 
-            return document.GeneratePdf();
+            _logger.LogInformation("Document criado: {Ms}ms", sw.ElapsedMilliseconds);
+            var pdf = document.GeneratePdf();
+            _logger.LogInformation("PDF gerado: {Ms}ms, Size: {Size}KB", sw.ElapsedMilliseconds, pdf.Length / 1024);
+            return pdf;
         }
 
         private sealed class ExportacaoTransacaoRow
